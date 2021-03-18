@@ -31,7 +31,7 @@ class Card:
 class CardData:
     def __init__(self):
         # TODO: populate from JSON.
-        self.special_achievements = ["Monument", "World", "Universe", "Wonder"] # TODO
+        self.special_achievements = ["Monument", "World", "Universe", "Wonder", "Empire"] # TODO
         self.cards = []
         for i in AGES:
             self.cards.extend([Card("The Wheel", i, ["Draw two 1s."], "HCCC", "C"), Card("Writing", i, ["Draw a 2."], "HCBB", "B")]*5)
@@ -71,6 +71,8 @@ class State:
             melded = p.ask(p.hand, "What to meld for turn 0?")
             p.board.append(melded)
             p.hand.remove(melded)
+        self.players.sort(key = lambda p: p.board[0].name)
+        self.actions_remaining = 1 # TODO: only works for 2p.
 
     def __str__(self):
         board = '\n'.join('deck {}: {}'.format(i, self.decks[i]) for i in self.decks)
