@@ -11,8 +11,11 @@ import random
 
 # Later: Splay, demands, and 105 cards :)
 
+MAX_AGE = 2
+AGES = list(range(1,MAX_AGE + 1))
 
-AGES = list(range(1,11))
+def can_achieve(achievement_age, player_top_age, player_score):
+    return player_top_age >= achievement_age and player_score >= 5*achievement_age
 
 class Card:
     def __init__(self, name, age, dogmas, symbols, main_symbol):
@@ -44,6 +47,14 @@ class Player:
         self.score = []
         self.achievements = []
 
+    def top_age(self):
+        if not self.board:
+            return 0
+        return max(card.age for card in self.board)
+
+    def total_score(self):
+        return sum(card.age for card in self.score)
+
     def ask(self, options, msg):
         print("asking player {} {}:\n{}".format(self.name, msg, "\n".join("[option {}] {}".format(i, x) for i,x in enumerate(options))))
         i = input("Answer by idx:")
@@ -54,9 +65,25 @@ class Player:
     def __repr__(self):
         return self.__str__()
 
+# A PrintableFunction is a zero-arg fn together with a message
+# which we use to print out the fn when we pass it around.
+class PrintableFunction:
+    def __init__(self, fn, msg):
+        self.fn = fn
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
+    def __repr__(self):
+        return self.msg
+
+    def __call__(self):
+        return self.fn()
 
 class State:
     def __init__(self, players, card_data):
+        self.game_over = False
         self.players = players
         self.decks = {i: [card for card in card_data.cards if card.age == i]  for i in AGES}
         for i in AGES:
@@ -74,6 +101,81 @@ class State:
         self.players.sort(key = lambda p: p.board[0].name)
         self.actions_remaining = 1 # TODO: only works for 2p.
 
+    def edges(self):
+        # Returns (Player, [Options]) - 
+        # the edges leading out of this state.
+        # Invariant is that the current player is players[0]
+        # and they have 1-2 actions left.
+        options = []
+        current_player = self.players[0]
+        top_age = current_player.top_age()
+        score = current_player.total_score()
+        options.append(self.draw_wrapper(current_player, top_age))
+        for card in current_player.hand:
+            options.append(self.meld_wrapper(current_player, card, current_player.hand))
+        for card in current_player.board:
+            options.append(self.dogma_wrapper(current_player, card))
+        for achievement in self.achievements:
+            if can_achieve(achievement.age, top_age, score):
+                # TODO: this will break with Echoes' multiple copies
+                # of the same achievement.
+                options.append(self.achieve_wrapper(current_player, achievement))
+        return current_player, options
+
+    def draw_wrapper(self, player, age): # Just draws one card, TODO for wheel.
+        fn = lambda: self.draw(player, age)
+        msg = "{} draws a {}".format(player.name, age)
+        return PrintableFunction(fn, msg)
+
+    def draw(self, player, age):
+        if age >= MAX_AGE + 1:
+            print("Game over due to drawing an 11!")
+            self.game_over = True
+            return
+        if age <= 0:
+            return draw(self, player, 1)
+        deck = self.decks[age]
+        if not deck:
+            return self.draw(player, age+1)
+        player.hand.append(deck.pop())
+
+    def dogma_wrapper(self, player, card):
+        fn = lambda: self.dogma(player, card)
+        msg = "{} activates the dogma of {}".format(player.name, card)
+        return PrintableFunction(fn, msg)
+
+    def dogma(self, player, card):
+        print("DOGMA not implemented yet for {}".format(card))
+
+    def achieve_wrapper(self, player, achievement):
+        fn = lambda: self.achieve(player, achievement)
+        msg = "{} achieves {}".format(player.name, achievement)
+        return PrintableFunction(fn, msg)
+    
+    def achieve(self, player, achievement):
+        self.achievements.remove(achievement)
+        self.player.achievements.append(achievement)
+
+    def meld_wrapper(self, player, card, from_zone):
+        fn = lambda: self.meld(player, card, from_zone)
+        msg = "{} melds {}".format(player.name, card) # TODO: from where?
+        return PrintableFunction(fn, msg)
+
+    def meld(self, player, card, from_zone):
+        player.board.append(card)
+        from_zone.remove(card)
+
+    def main_loop(self):
+        while not self.game_over:
+            current_player, options = self.edges()
+            msg = "What to do for action {}?".format(3 - self.actions_remaining)
+            selected_option = current_player.ask(options, msg)
+            selected_option()
+            self.actions_remaining -= 1
+            if self.actions_remaining == 0:
+                self.actions_remaining = 2
+                self.players = self.players[1:] + [self.players[0]]
+
     def __str__(self):
         board = '\n'.join('deck {}: {}'.format(i, self.decks[i]) for i in self.decks)
         lines = ['player {} ({}):\n{}'.format(i, player.name, player) for i, player in enumerate(self.players)]
@@ -86,4 +188,6 @@ if __name__ == "__main__":
     players = [Player("James"), Player("Katharine")]
     card_data = CardData()
     state = State(players, card_data)
+    state.main_loop()
     print(state)
+    
