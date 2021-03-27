@@ -1,4 +1,6 @@
 import random
+import collections
+import json
 # TODO: parse cards.json instead of hardcoding here
 # TODO: implement draw and meld.
 # TODO: implement dogma. (requires cards to have a functional dogma).
@@ -9,6 +11,7 @@ import random
 # - Sailing: Draw and meld a 1.
 # - WinButton: Achieve the lowest achievement.
 
+
 # Later: Splay, demands, and 105 cards :)
 
 MAX_AGE = 2
@@ -17,19 +20,9 @@ AGES = list(range(1,MAX_AGE + 1))
 def can_achieve(achievement_age, player_top_age, player_score):
     return player_top_age >= achievement_age and player_score >= 5*achievement_age
 
-class Card:
-    def __init__(self, name, age, dogmas, symbols, main_symbol):
-        self.age = age
-        self.name = name
-        self.dogmas = dogmas
-        self.symbols = symbols
-        self.main_symbol = main_symbol
+CARD_FIELDS = ['name', 'age', 'dogmas_english', 'dogmas_machine', 'symbols', 'main_symbol']
 
-    def __str__(self):
-        return "{} ({})".format(self.name, self.age)
-
-    def __repr__(self):
-        return self.__str__()
+Card = collections.namedtuple('Card', CARD_FIELDS)
 
 class CardData:
     def __init__(self):
@@ -37,7 +30,8 @@ class CardData:
         self.special_achievements = ["Monument", "World", "Universe", "Wonder", "Empire"] # TODO
         self.cards = []
         for i in AGES:
-            self.cards.extend([Card("The Wheel", i, ["Draw two 1s."], "HCCC", "C"), Card("Writing", i, ["Draw a 2."], "HCBB", "B")]*5)
+            self.cards.extend([Card("The Wheel", i, ["Draw two 1s."], ['draw_n(player,1,2)'], "HCCC", "C"), Card("Writing", i, ["Draw a 2."], ['draw(player,2)'], "HCBB", "B")]*5)
+        print(self.cards)
 
 class Player:
     def __init__(self, name):
@@ -122,10 +116,14 @@ class State:
                 options.append(self.achieve_wrapper(current_player, achievement))
         return current_player, options
 
-    def draw_wrapper(self, player, age): # Just draws one card, TODO for wheel.
+    def draw_wrapper(self, player, age):
         fn = lambda: self.draw(player, age)
         msg = "{} draws a {}".format(player.name, age)
         return PrintableFunction(fn, msg)
+
+    def draw_n(self, player, age, n):
+        for _ in range(n):
+            self.draw(player, age)
 
     def draw(self, player, age):
         if age >= MAX_AGE + 1:
@@ -145,7 +143,9 @@ class State:
         return PrintableFunction(fn, msg)
 
     def dogma(self, player, card):
-        print("DOGMA not implemented yet for {}".format(card))
+        # TODO: card.dogma_machine is "draw(player, n) e.g. so we can just strcat.
+        for ability in card.dogmas_machine:
+            eval("self." + ability)
 
     def achieve_wrapper(self, player, achievement):
         fn = lambda: self.achieve(player, achievement)
@@ -154,7 +154,7 @@ class State:
     
     def achieve(self, player, achievement):
         self.achievements.remove(achievement)
-        self.player.achievements.append(achievement)
+        player.achievements.append(achievement)
 
     def meld_wrapper(self, player, card, from_zone):
         fn = lambda: self.meld(player, card, from_zone)

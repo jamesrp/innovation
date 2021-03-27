@@ -1,0 +1,44 @@
+{
+  "cards": [
+    {
+      "name": "The Wheel",
+      "age": 1,
+      "color": "GREEN",
+      "main_symbol": "CASTLE",
+      "symbols": [
+        "HEX",
+        "",
+        "",
+        "CASTLE",
+        "CASTLE",
+        "CASTLE"
+      ],
+      "dogmas_english": [
+        "Draw two 1s."
+      ],
+      "dogmas_function": [
+        "draw(2,1)"
+      ]
+    },
+    {
+      "name": "Writing",
+      "age": 1,
+      "color": "BLUE",
+      "main_symbol": "BULB",
+      "symbols": [
+        "HEX",
+        "",
+        "",
+        "BULB",
+        "BULB",
+        "CROWN"
+      ],
+      "dogmas_english": [
+        "Draw a 2."
+      ],
+      "dogmas_function": [
+        "draw(1,2)"
+      ]
+    }
+  ]
+}
