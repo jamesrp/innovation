@@ -13,6 +13,7 @@ const TicTacToeClient = Client({
 const App = () => (
   <div>
     <TicTacToeClient playerID="0" />
+    <hr />
     <TicTacToeClient playerID="1" />
   </div>
 );

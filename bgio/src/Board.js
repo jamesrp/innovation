@@ -2,7 +2,7 @@ import React from 'react';
 
 export class TicTacToeBoard extends React.Component {
   onClick(id) {
-    this.props.moves.clickCell(id);
+    this.props.moves.ClickCell(id, this.props.playerID);
   }
 
   render() {
@@ -14,6 +14,25 @@ export class TicTacToeBoard extends React.Component {
         ) : (
           <div id="winner">Draw!</div>
         );
+    }
+    let message = '';
+    if (this.props.ctx.phase === "startPhase") {
+      let positions = [0, 1, 2];
+      if (this.props.playerID === "1") {
+        positions = [6, 7, 8];
+      }
+      const symbols = positions.map(i => this.props.G.cells[i]);
+      if (symbols.every(i => i === null)) {
+        message = 'Please select a starting position.';
+      } else {
+        message = 'Waiting for opponent to select starting position.';
+      }
+    } else {
+      if (this.props.playerID === this.props.ctx.currentPlayer) {
+        message = 'Please make the next move.';
+      } else {
+        message = 'Waiting for opponent to make the next move.';
+      }
     }
 
     const cellStyle = {
@@ -40,6 +59,8 @@ export class TicTacToeBoard extends React.Component {
 
     return (
       <div>
+        <h1> Player {this.props.playerID} board</h1>
+        {message}
         <table id="board">
           <tbody>{tbody}</tbody>
         </table>

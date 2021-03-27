@@ -1,19 +1,31 @@
 import { INVALID_MOVE } from 'boardgame.io/core';
 
 export const TicTacToe = {
-  setup: () => ({ cells: Array(9).fill(null) }),
+  setup: mySetup,
 
   turn: {
     moveLimit: 1,
   },
 
   moves: {
-    clickCell: (G, ctx, id) => {
-      if (G.cells[id] !== null) {
-        return INVALID_MOVE;
-      }
+    ClickCell
+  },
 
-      G.cells[id] = ctx.currentPlayer;
+  phases: {
+    startPhase: {
+      moves: { ClickCell },
+        stages: {
+          myFirstStage: {
+            moves: { ClickCell },
+          },
+        },
+      next: 'play',
+      endIf: G => DoneWithSetup(G.cells),
+      start: true,
+    },
+
+    play: {
+      moves: { ClickCell },
     },
   },
 
@@ -26,8 +38,28 @@ export const TicTacToe = {
     }
   },
 
+  playerView: StripSecrets,
+
 
 };
+
+function ClickCell(G, ctx, id, playerID) {
+console.log('hello ClickCell');
+  if (G.cells[id] !== null) {
+    return INVALID_MOVE;
+  }
+  if (ctx.phase === "startPhase") {
+    var positions = [0, 1, 2];
+    if (playerID === "1") {
+      positions = [6, 7, 8];
+    }
+    if (!positions.includes(id)) {
+      return INVALID_MOVE;
+    }
+  }
+
+  G.cells[id] = playerID;
+}
 
 // Return true if `cells` is in a winning configuration.
 function IsVictory(cells) {
@@ -47,4 +79,33 @@ function IsVictory(cells) {
 // Return true if all `cells` are occupied.
 function IsDraw(cells) {
   return cells.filter(c => c === null).length === 0;
+}
+
+// Determines when to end the setup phase - when 2 cells are filled.
+function DoneWithSetup(cells) {
+  return cells.filter(c => c === null).length === 7;
+}
+
+function mySetup(ctx) {
+  ctx.events.setActivePlayers({ all: 'myFirstStage', moveLimit: 1 });
+  return {
+    cells: Array(9).fill(null)
+   }
+}
+
+// If we are in the start phase, only show the player the move that they have made.
+function StripSecrets(G, ctx, playerID)  {
+  if (ctx.phase === "startPhase") {
+    var opponentPositions = [0, 1, 2];
+    if (playerID === "0") {
+      opponentPositions = [6, 7, 8];
+    }
+    const r = { ...G };
+    r.cells = [...(G.cells)];
+    for (var i = 0; i < 3; ++i) {
+        r.cells[opponentPositions[i]] = null;
+    }
+    return r;
+  }
+  return G;
 }
