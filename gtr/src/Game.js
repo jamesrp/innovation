@@ -1,111 +1,93 @@
-import { INVALID_MOVE } from 'boardgame.io/core';
+import {INVALID_MOVE} from 'boardgame.io/core';
+import {PlayerView} from 'boardgame.io/core';
 
-export const TicTacToe = {
-  setup: mySetup,
 
-  turn: {
-    moveLimit: 1,
-  },
+export const GloryToRome = {
+    setup: mySetup,
+    playerView: PlayerView.STRIP_SECRETS,
 
-  moves: {
-    ClickCell
-  },
-
-  phases: {
-    startPhase: {
-      moves: { ClickCell },
-        stages: {
-          myFirstStage: {
-            moves: { ClickCell },
-          },
-        },
-      next: 'play',
-      endIf: G => DoneWithSetup(G.cells),
-      start: true,
+    turn: {
+        moveLimit: 1,
     },
 
-    play: {
-      moves: { ClickCell },
+    moves: {
+        Think,
+        // LeadMerchant,
+        // LeadLaborer,
+        // TODO: add following.
     },
-  },
 
-  endIf: (G, ctx) => {
-    if (IsVictory(G.cells)) {
-      return { winner: ctx.currentPlayer };
-    }
-    if (IsDraw(G.cells)) {
-      return { draw: true };
-    }
-  },
-
-  playerView: StripSecrets,
+    endIf: (G, ctx) => {
+        if (G.secret.deck.isEmpty) {
+            let p0Points = vaultPoints(G.public["0"].vault);
+            let p1Points = vaultPoints(G.public["1"].vault);
+            if (p0Points < p1Points) {
+                return {winner: '1'};
+            } else if (p0Points > p1Points) {
+                return {winner: '0'};
+            } else {
+                return {draw: true};
+            }
+        }
+    },
 
 
 };
 
-function ClickCell(G, ctx, id, playerID) {
-console.log('hello ClickCell');
-  if (G.cells[id] !== null) {
-    return INVALID_MOVE;
-  }
-  if (ctx.phase === "startPhase") {
-    var positions = [0, 1, 2];
-    if (playerID === "1") {
-      positions = [6, 7, 8];
+function vaultPoints(vault) {
+    let nameToValue = {
+        'merchant': 3,
+        'laborer': 1,
+    };
+    return vault.map(i => nameToValue[i]).reduce(
+        (accumulator, currentValue) => accumulator + currentValue,
+        0
+    )
+}
+
+function Think(G, ctx, playerID) {
+    let handLimit = 5;
+    let toDraw = handLimit - G[playerID].hand.length;
+    if (toDraw <= 0) {
+        toDraw = 1;
     }
-    if (!positions.includes(id)) {
-      return INVALID_MOVE;
+    if (toDraw > G.secret.deck.length) {
+        toDraw = G.secret.deck.length;
     }
-  }
-
-  G.cells[id] = playerID;
-}
-
-// Return true if `cells` is in a winning configuration.
-function IsVictory(cells) {
-  const positions = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6],
-    [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]
-  ];
-
-  const isRowComplete = row => {
-    const symbols = row.map(i => cells[i]);
-    return symbols.every(i => i !== null && i === symbols[0]);
-  };
-
-  return positions.map(isRowComplete).some(i => i === true);
-}
-
-// Return true if all `cells` are occupied.
-function IsDraw(cells) {
-  return cells.filter(c => c === null).length === 0;
-}
-
-// Determines when to end the setup phase - when 2 cells are filled.
-function DoneWithSetup(cells) {
-  return cells.filter(c => c === null).length === 7;
+    G[playerID].hand.push(G.secret.deck.splice(0,toDraw));
 }
 
 function mySetup(ctx) {
-  ctx.events.setActivePlayers({ all: 'myFirstStage', moveLimit: 1 });
-  return {
-    cells: Array(9).fill(null)
-   }
+    let numCards = ctx.numPlayers * 10;
+    let merchant = {name: "merchant"};
+    let laborer = {name: "laborer"};
+    let deck = Array(numCards).fill(merchant) + Array(numCards).fill(laborer);
+    let hand0 = Array(2).fill(merchant) + Array(3).fill(laborer);
+    let hand1 = Array(2).fill(merchant) + Array(3).fill(laborer);
+    // TODO: generalize to 3+ players.
+    // TODO: actually randomize the hands as part of the deck.
+    // TODO: the number of cards in opp hand should be public.
+    return {
+        public: {
+            '0': {
+                stockpile: Array(0),
+                vault: Array(0),
+            },
+            '1': {
+                stockpile: Array(0),
+                vault: Array(0),
+            },
+        },
+        secret: {
+            // deck: ctx.random.Shuffle(deck),
+            deck: deck,
+        },
+        '0': {
+            hand: hand0,
+        },
+        '1': {
+            hand: hand1,
+        },
+    }
 }
 
-// If we are in the start phase, only show the player the move that they have made.
-function StripSecrets(G, ctx, playerID)  {
-  if (ctx.phase === "startPhase") {
-    var opponentPositions = [0, 1, 2];
-    if (playerID === "0") {
-      opponentPositions = [6, 7, 8];
-    }
-    const r = { ...G };
-    r.cells = [...(G.cells)];
-    for (var i = 0; i < 3; ++i) {
-        r.cells[opponentPositions[i]] = null;
-    }
-    return r;
-  }
-  return G;
-}
