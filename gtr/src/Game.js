@@ -4,7 +4,7 @@ import {PlayerView} from 'boardgame.io/core';
 
 export const GloryToRome = {
     setup: mySetup,
-    playerView: PlayerView.STRIP_SECRETS,
+    // playerView: PlayerView.STRIP_SECRETS,
 
     turn: {
         moveLimit: 1,
@@ -12,6 +12,7 @@ export const GloryToRome = {
 
     moves: {
         Think,
+        Lead,
         // LeadMerchant,
         // LeadLaborer,
         // TODO: add following.
@@ -54,21 +55,32 @@ function Think(G, ctx, playerID) {
     if (toDraw > G.secret.deck.length) {
         toDraw = G.secret.deck.length;
     }
-    G[playerID].hand.push(G.secret.deck.splice(0,toDraw));
+    G[playerID].hand = G[playerID].hand.concat(G.secret.deck.splice(0,toDraw));
+}
+
+// TODO: currently only leads, doesn't give opp a chance to follow or think.
+// TODO: how will we let the player choose what to laborer or merchant?
+function Lead(G, ctx, id, playerID) {
+    let removed = G[playerID].hand.splice(id, 1);
+    if (removed.length === 0) {
+        return INVALID_MOVE;
+    }
+    G.public.pool = G.public.pool.concat(removed);
 }
 
 function mySetup(ctx) {
     let numCards = ctx.numPlayers * 10;
     let merchant = {name: "merchant"};
     let laborer = {name: "laborer"};
-    let deck = Array(numCards).fill(merchant) + Array(numCards).fill(laborer);
-    let hand0 = Array(2).fill(merchant) + Array(3).fill(laborer);
-    let hand1 = Array(2).fill(merchant) + Array(3).fill(laborer);
+    let deck = Array(numCards).fill(merchant).concat(Array(numCards).fill(laborer));
+    let hand0 = Array(1).fill(merchant).concat(Array(1).fill(laborer));
+    let hand1 = Array(1).fill(merchant).concat(Array(1).fill(laborer));
     // TODO: generalize to 3+ players.
     // TODO: actually randomize the hands as part of the deck.
     // TODO: the number of cards in opp hand should be public.
     return {
         public: {
+            pool: Array(0),
             '0': {
                 stockpile: Array(0),
                 vault: Array(0),
@@ -79,8 +91,8 @@ function mySetup(ctx) {
             },
         },
         secret: {
-            // deck: ctx.random.Shuffle(deck),
-            deck: deck,
+            deck: ctx.random.Shuffle(deck),
+            // deck: deck,
         },
         '0': {
             hand: hand0,

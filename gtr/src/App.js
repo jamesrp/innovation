@@ -12,9 +12,12 @@ const GloryToRomeClient = Client({
 
 const App = () => (
     <div>
-        <GloryToRomeClient playerID="0"/>
-        <hr/>
-        <GloryToRomeClient playerID="1"/>
+        <table>
+            <tr>
+                <td><GloryToRomeClient playerID="0"/></td>
+                <td><GloryToRomeClient playerID="1"/></td>
+            </tr>
+        </table>
     </div>
 );
 

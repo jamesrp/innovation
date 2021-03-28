@@ -6,7 +6,7 @@ export class GloryToRomeBoard extends React.Component {
     }
 
     render() {
-        let winner = '';
+        let winner = 'Game not finished yet.';
         if (this.props.ctx.gameover) {
             winner =
                 this.props.ctx.gameover.winner !== undefined ? (
@@ -31,7 +31,7 @@ export class GloryToRomeBoard extends React.Component {
             textAlign: 'center',
         };
 
-        let tbody = [];
+        let think = [];
         for (let i = 0; i < 1; i++) {
             let cells = [];
             for (let j = 0; j < 1; j++) {
@@ -42,29 +42,69 @@ export class GloryToRomeBoard extends React.Component {
                     </td>
                 );
             }
-            tbody.push(<tr key={i}>{cells}</tr>);
+            think.push(<tr key={i}>{cells}</tr>);
         }
 
 
-        let cells = [];
-        this.props.G[this.props.playerID].hand.foreach(element => cells.push(
-            <td style={cellStyle}>
+        let hand = [];
+        this.props.G[this.props.playerID].hand.forEach(element => hand.push(
+            <li onClick={() => this.props.moves.Lead(0, this.props.playerID)}>
                 {element.name}
-            </td>
+            </li>
         ))
+
+        let pool = [];
+        this.props.G.public.pool.forEach(element => pool.push(
+            <li>
+                {element.name}
+            </li>
+        ))
+
+        let opp = '0';
+        if (this.props.playerID === '0') {
+            opp = '1';
+        }
 
 
         return (
             <div>
                 <h1> Player {this.props.playerID} board</h1>
                 {message}
+                <h2>Actions</h2>
                 <table id="board">
-                    <tbody>{tbody}</tbody>
+                    <thead>
+                    <tr>
+                        <th scope="col">My Hand</th>
+                    </tr>
+                    <tr>
+                        <th scope="col">Pool</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>
+                            <ul>{hand}</ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <ul>{pool}</ul>
+                        </td>
+                    </tr>
+                    </tbody>
                 </table>
-                <table id="hand">
-                    <tbody><tr>{cells}</tr></tbody>
+                <table id="think">
+                    <tbody>
+                    <tr>{think}</tr>
+                    </tbody>
                 </table>
-                {winner}
+                <h2>Other info</h2>
+                <p>Opponent hand size: {this.props.G[opp].hand.length}</p>
+                <p>Deck size: {this.props.G.secret.deck.length}</p>
+                <h2>Outcome of game:</h2>
+                {
+                    winner
+                }
             </div>
         );
     }
