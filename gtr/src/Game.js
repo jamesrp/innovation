@@ -10,10 +10,21 @@ export const GloryToRome = {
         moveLimit: 1,
     },
 
+    phases: {
+        declare: {
+            moves: {Think, Play},
+            start: true,
+        },
+
+        resolve: {
+            moves: {ResolveCardPlayed, EndTurn},
+            turn: { moveLimit: 100000 }, // can we do infinite? we want to call endTurn ourselves.
+        },
+    },
+
     moves: {
         Think,
-        Lead,
-        // TODO: add following.
+        Play,
     },
 
     endIf: (G, ctx) => {
@@ -45,6 +56,9 @@ function vaultPoints(vault) {
 }
 
 function Think(G, ctx, playerID) {
+    // Actually draw the cards.
+    // TODO: offer jack.
+    // TODO: offer to draw 1 card if desired even if could draw more.
     let handLimit = 5;
     let toDraw = handLimit - G[playerID].hand.length;
     if (toDraw <= 0) {
@@ -54,32 +68,91 @@ function Think(G, ctx, playerID) {
         toDraw = G.secret.deck.length;
     }
     G[playerID].hand = G[playerID].hand.concat(G.secret.deck.splice(0, toDraw));
+
+    if (G.leader === playerID) {
+        ctx.events.setPhase('declare');
+        G.leader = NextLeader(G.leader);
+        // TODO: why do I have to end my turn here? IIUC framework should do it.
+        ctx.events.endTurn();
+    } else {
+        G.numToDeclare -= 1;
+        if (G.numToDeclare === 0) {
+            ctx.events.setPhase('resolve');
+        }
+    }
 }
 
-// TODO: currently only leads, doesn't give opp a chance to follow or think.
-// TODO: how will we let the player choose what to laborer or merchant?
-// Currently we just give them idx 0 if it exists.
-function Lead(G, ctx, id, playerID) {
+function Play(G, ctx, id, playerID) {
     let removed = G[playerID].hand.splice(id, 1);
     if (removed.length === 0) {
         return INVALID_MOVE;
     }
+    let card = removed[0];
 
-    let name = removed[0].name;
-    if (name === "merchant") {
+    G.public[playerID].cardPlayed = Array(1).fill(card);
+    G.numToResolve += 1;
+
+    if (G.leader === playerID) {
+        G.numToDeclare = ctx.numPlayers - 1;
+    } else {
+        G.numToDeclare -= 1;
+        if (G.numToDeclare === 0) {
+            ctx.events.setPhase('resolve');
+        }
+    }
+}
+
+// For now, a manual button when we are done resolving.
+// Later this should be tracked via clients and auto ended probably.
+function EndTurn(G, ctx) {
+    G.numToResolve -= 1;
+    if (G.numToResolve === 0) {
+        CleanupCardsPlayed(G, ctx);
+        ctx.events.setPhase('declare');
+    }
+    ctx.events.endTurn();
+}
+
+// Does the effect but leaves the card in cardPlayed
+// TODO: make this take a choice of what to do instead of choosing arr[0].
+function ResolveCardPlayed(G, ctx, fromZone, playerID) {
+    if (G.public[playerID].cardPlayed.length === 0) {
+        return;
+    }
+    let cardPlayed = G.public[playerID].cardPlayed[0].name;
+
+    if (fromZone === "pool") {
+        if (cardPlayed !== "laborer") {
+            return INVALID_MOVE;
+        }
+    } else if (fromZone === "stockpile") {
+        if (cardPlayed !== "merchant") {
+            return INVALID_MOVE;
+        }
+    } else {
+        return INVALID_MOVE;
+    }
+
+
+    if (cardPlayed === "merchant") {
         if (G.public[playerID].stockpile.length !== 0) {
             G.public[playerID].vault = G.public[playerID].vault.concat(G.public[playerID].stockpile.splice(0, 1));
         }
-    } else if (name === "laborer") {
+    } else if (cardPlayed === "laborer") {
         if (G.public.pool.length !== 0) {
             G.public[playerID].stockpile = G.public[playerID].stockpile.concat(G.public.pool.splice(0, 1));
         }
-    } else {
-        return INVALID_MOVE; // Will this remove the thing or not?
     }
+}
 
-    // Finally, put the played card in the pool.
-    G.public.pool = G.public.pool.concat(removed);
+function CleanupCardsPlayed(G, ctx) {
+    let players = Array.of("0", "1"); // so hacky... clean up.
+    players.forEach(playerID => {
+        if (G[playerID].cardPlayed.length === 0) {
+            return;
+        }
+        G.public.pool.push(G[playerID].cardPlayed.pop());
+    });
 }
 
 function mySetup(ctx) {
@@ -97,15 +170,20 @@ function mySetup(ctx) {
     // TODO: actually randomize the hands as part of the deck.
     // TODO: the number of cards in opp hand should be public.
     return {
+        numToDeclare: ctx.numPlayers,
+        numToResolve: 0,
+        leader: ctx.currentPlayer,
         public: {
             pool: pool,
             '0': {
                 stockpile: Array(0),
                 vault: Array(0),
+                cardPlayed: Array(0),
             },
             '1': {
                 stockpile: Array(0),
                 vault: Array(0),
+                cardPlayed: Array(0),
             },
         },
         secret: {
@@ -119,5 +197,13 @@ function mySetup(ctx) {
             hand: hand1,
         },
     }
+}
+
+// hacky
+function NextLeader(leader) {
+    if (leader === "0") {
+        return "1";
+    }
+    return "0";
 }
 

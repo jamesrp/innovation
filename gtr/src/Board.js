@@ -48,15 +48,30 @@ export class GloryToRomeBoard extends React.Component {
 
         let hand = [];
 
+        // For cards in hand, these are always Play commands for now.
         this.props.G[this.props.playerID].hand.forEach((element, index, array )=> hand.push(
-            <li onClick={() => this.props.moves.Lead(index, this.props.playerID)}>
+            <li onClick={() => this.props.moves.Play(index, this.props.playerID)}>
                 {element.name}
             </li>
         ))
 
         let pool = [];
-        this.props.G.public.pool.forEach(element => pool.push(
-            <li>
+        this.props.G.public.pool.forEach((element, index, array ) => pool.push(
+            <li onClick={() => this.props.moves.ResolveCardPlayed("pool", index, this.props.playerID)}>
+                {element.name}
+            </li>
+        ))
+
+        let stockpile = [];
+        this.props.G.public[this.props.playerID].stockpile.forEach((element, index, array ) => pool.push(
+            <li onClick={() => this.props.moves.ResolveCardPlayed("stockpile", index, this.props.playerID)}>
+                {element.name}
+            </li>
+        ))
+
+        let vault = [];
+        this.props.G.public[this.props.playerID].vault.forEach((element, index, array ) => pool.push(
+            <li onClick={() => this.props.moves.ResolveCardPlayed("vault", index, this.props.playerID)}>
                 {element.name}
             </li>
         ))
@@ -69,40 +84,27 @@ export class GloryToRomeBoard extends React.Component {
 
         return (
             <div>
-                <h1> Player {this.props.playerID} board</h1>
+                <h3> Player {this.props.playerID} board</h3>
                 {message}
-                <h2>Actions</h2>
-                <table id="board">
-                    <thead>
-                    <tr>
-                        <th scope="col">My Hand</th>
-                    </tr>
-                    <tr>
-                        <th scope="col">Pool</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>
-                            <ul>{hand}</ul>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <ul>{pool}</ul>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
+                <h4>Actions</h4>
                 <table id="think">
                     <tbody>
                     <tr>{think}</tr>
                     </tbody>
                 </table>
-                <h2>Other info</h2>
-                <p>Opponent hand size: {this.props.G[opp].hand.length}</p>
-                <p>Deck size: {this.props.G.secret.deck.length}</p>
-                <h2>Outcome of game:</h2>
+                <h4>My Hand</h4>
+                <ul>{hand}</ul>
+                <h4>My Stockpile</h4>
+                <ul>{stockpile}</ul>
+                <h4>My Vault</h4>
+                <ul>{vault}</ul>
+                <h4>The Pool</h4>
+                <ul>{pool}</ul>
+
+                <h4>Other info</h4>
+                <li>Opponent hand size: {this.props.G[opp].hand.length}</li>
+                <li>Deck size: {this.props.G.secret.deck.length}</li>
+                <h4>Outcome of game:</h4>
                 {
                     winner
                 }
