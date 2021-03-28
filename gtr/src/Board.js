@@ -47,8 +47,9 @@ export class GloryToRomeBoard extends React.Component {
 
 
         let hand = [];
-        this.props.G[this.props.playerID].hand.forEach(element => hand.push(
-            <li onClick={() => this.props.moves.Lead(0, this.props.playerID)}>
+
+        this.props.G[this.props.playerID].hand.forEach((element, index, array )=> hand.push(
+            <li onClick={() => this.props.moves.Lead(index, this.props.playerID)}>
                 {element.name}
             </li>
         ))
