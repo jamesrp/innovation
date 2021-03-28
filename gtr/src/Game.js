@@ -19,7 +19,7 @@ export const GloryToRome = {
     },
 
     endIf: (G, ctx) => {
-        if (G.secret.deck.isEmpty) {
+        if (G.secret.deck.length === 0) {
             let p0Points = vaultPoints(G.public["0"].vault);
             let p1Points = vaultPoints(G.public["1"].vault);
             if (p0Points < p1Points) {
@@ -69,7 +69,7 @@ function Lead(G, ctx, id, playerID) {
 }
 
 function mySetup(ctx) {
-    let numCards = ctx.numPlayers * 10;
+    let numCards = ctx.numPlayers * 5;
     let merchant = {name: "merchant"};
     let laborer = {name: "laborer"};
     let deck = Array(numCards).fill(merchant).concat(Array(numCards).fill(laborer));
