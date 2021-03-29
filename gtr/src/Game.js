@@ -8,6 +8,19 @@ export const GloryToRome = {
 
     turn: {
         moveLimit: 1,
+        order: {
+            // Get the initial value of playOrderPos.
+            // This is called at the beginning of the phase.
+            // first: (G, ctx) => {
+            //     return ctx.playOrder.find(element => element === G.leader); // Scared to use indexOf with stringy ===.
+            // },
+            first: (G, ctx) => 0,
+
+            // Get the next value of playOrderPos.
+            // This is called at the end of each turn.
+            // The phase ends if this returns undefined.
+            next: (G, ctx) => (ctx.playOrderPos + 1) % ctx.numPlayers,
+        }
     },
 
     phases: {
@@ -17,8 +30,8 @@ export const GloryToRome = {
         },
 
         resolve: {
-            moves: {ResolveCardPlayed, EndTurn},
-            turn: { moveLimit: 100000 }, // can we do infinite? we want to call endTurn ourselves.
+            moves: {ResolveCardPlayed, EndResolveCardPlayed},
+            turn: {moveLimit: 100000}, // can we do infinite? we want to call endTurn ourselves.
         },
     },
 
@@ -55,6 +68,13 @@ function vaultPoints(vault) {
     )
 }
 
+// State machine for passing turn order:
+// Leader can either lead or think.
+// If they think, pass the leader and start over.
+// If they lead, give each player in turn order a chance to follow or think.
+// Then, the leader as well as everyone who followed get to resolve the effect.
+// Afterwards, pass the leader and start over.
+
 function Think(G, ctx, playerID) {
     // Actually draw the cards.
     // TODO: offer jack.
@@ -70,15 +90,10 @@ function Think(G, ctx, playerID) {
     G[playerID].hand = G[playerID].hand.concat(G.secret.deck.splice(0, toDraw));
 
     if (G.leader === playerID) {
-        ctx.events.setPhase('declare');
         G.leader = NextLeader(G.leader);
-        // TODO: why do I have to end my turn here? IIUC framework should do it.
-        ctx.events.endTurn();
+        ctx.events.endTurn({next: G.leader});
     } else {
-        G.numToDeclare -= 1;
-        if (G.numToDeclare === 0) {
-            ctx.events.setPhase('resolve');
-        }
+        MarkOneDeclared(G, ctx);
     }
 }
 
@@ -95,16 +110,21 @@ function Play(G, ctx, id, playerID) {
     if (G.leader === playerID) {
         G.numToDeclare = ctx.numPlayers - 1;
     } else {
-        G.numToDeclare -= 1;
-        if (G.numToDeclare === 0) {
-            ctx.events.setPhase('resolve');
-        }
+        MarkOneDeclared(G, ctx);
+    }
+}
+
+function MarkOneDeclared(G, ctx) {
+    G.numToDeclare -= 1;
+    if (G.numToDeclare === 0) {
+        ctx.events.setPhase('resolve');
+        ctx.events.endTurn({next: G.leader});
     }
 }
 
 // For now, a manual button when we are done resolving.
 // Later this should be tracked via clients and auto ended probably.
-function EndTurn(G, ctx) {
+function EndResolveCardPlayed(G, ctx) {
     G.numToResolve -= 1;
     if (G.numToResolve === 0) {
         CleanupCardsPlayed(G, ctx);
@@ -117,7 +137,7 @@ function EndTurn(G, ctx) {
 // TODO: make this take a choice of what to do instead of choosing arr[0].
 function ResolveCardPlayed(G, ctx, fromZone, playerID) {
     if (G.public[playerID].cardPlayed.length === 0) {
-        return;
+        return INVALID_MOVE;
     }
     let cardPlayed = G.public[playerID].cardPlayed[0].name;
 
@@ -143,6 +163,7 @@ function ResolveCardPlayed(G, ctx, fromZone, playerID) {
             G.public[playerID].stockpile = G.public[playerID].stockpile.concat(G.public.pool.splice(0, 1));
         }
     }
+    EndResolveCardPlayed(G, ctx);
 }
 
 function CleanupCardsPlayed(G, ctx) {
