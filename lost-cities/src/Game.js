@@ -1,9 +1,9 @@
-import {INVALID_MOVE} from 'boardgame.io/core';
+import {INVALID_MOVE, PlayerView} from 'boardgame.io/core';
 
-export const colors = ['green', 'red', 'blue', 'yellow', 'white'];
+export const colors = ['white', 'blue', 'yellow', 'red', 'green'];
 const drawFromZones = colors.concat(Array(1).fill("deck"));
 const playToZones = ['middle', 'me'];
-const investment = 'INV';
+const investment = 'x2';
 const maxNumber = 10;
 const numInvestments = 3;
 
@@ -16,10 +16,15 @@ export const LostCities = {
 
     moves: {
         PlayTo,
-        DrawFrom,
+        DrawFrom: {
+            // Crashes otherwise by trying to access deck locally.
+            move: DrawFrom,
+            client: false,
+        }
     },
 
-    // TODO: checking victory and endness.
+    playerView: PlayerView.STRIP_SECRETS,
+
     endIf: (G, ctx) => {
         if (G.secret.deck.length === 0) {
             let p0Points = computePoints(G.playerPiles["0"]);
@@ -75,12 +80,15 @@ function DrawFrom(G, ctx, zone) {
     let fromArray = G.secret.deck;
     if (zone !== "deck") {
         fromArray = G.middlePiles[zone];
+    } else {
+        G.deckSize -= 1;
     }
     if (fromArray.length === 0) {
         return INVALID_MOVE;
     }
     // TODO: need to check that the player didn't play and draw the same pile.
     G[ctx.playerID].hand.push(fromArray.pop());
+    sortHand(G[ctx.playerID].hand);
 }
 
 function GenerateDeck() {
@@ -115,10 +123,13 @@ function mySetup(ctx) {
         },
     };
     for (let i = 0; i < ctx.numPlayers; i++) {
+        let hand = deck.splice(0, 8);
+        sortHand(hand);
         G[i.toString()] = {
-            hand: deck.splice(0, 8),
+            hand: hand,
         };
     }
+    G.deckSize = deck.length;
     return G;
 }
 
@@ -134,23 +145,40 @@ function isSmaller(num1, num2) {
 
 }
 
+export function computePointsSingle(pile) {
+    if (pile.length === 0) {
+        return 0;
+    }
+    let total = -20;
+    let multiplier = 1;
+    pile.forEach(card => {
+        if (card.number === investment) {
+            multiplier += 1;
+        } else {
+            total += parseInt(card.number, 10);
+        }
+    })
+    return multiplier * total;
+}
+
 export function computePoints(piles) {
     let points = 0;
     colors.forEach(color => {
-        let pile = piles[color];
-        if (pile.length === 0) {
-            return;
-        }
-        let total = -20;
-        let multiplier = 1;
-        pile.forEach(card => {
-            if( card.number === investment ) {
-                multiplier += 1;
-            } else {
-                total += parseInt(card.number, 10);
-            }
-        })
-        points += multiplier * total;
+        points += computePointsSingle(piles[color]);
     });
     return points;
+}
+
+function sortHand(hand) {
+    hand.sort((a, b) => {
+        if (a.color === b.color) {
+            if (a.number === b.number) {
+                return 0;
+            } else if (isSmaller(a.number, b.number)) {
+                return -1;
+            }
+            return 1;
+        }
+        return colors.indexOf(a.color) - colors.indexOf(b.color);
+    });
 }

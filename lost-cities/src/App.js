@@ -9,16 +9,14 @@ const LostCitiesClient = Client({
     board: LostCitiesBoard,
     multiplayer: Local(),
     numPlayers: 2,
+    debug: false,
 });
 
 const App = () => (
     <div>
-        <table>
-            <tr>
-                <td><LostCitiesClient playerID="0"/></td>
-                <td><LostCitiesClient playerID="1"/></td>
-            </tr>
-        </table>
+        <LostCitiesClient playerID="0"/>
+        <hr/>
+        <LostCitiesClient playerID="1"/>
     </div>
 );
 
