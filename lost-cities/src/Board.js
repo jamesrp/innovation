@@ -22,23 +22,20 @@ export class LostCitiesBoard extends React.Component {
             message = ' - YOUR TURN!';
         }
 
+        const handLiStyle = {
+            height: '24px',
+            lineHeight: '50px',
+        };
 
         let hand = [];
         this.props.G[this.props.playerID].hand.forEach((element, idx, array) => hand.push(
-            <li>
-                {element.color} {element.number}: play to:
-                <span onClick={() => this.props.moves.PlayTo(idx, element.color, "middle")}> middle</span>
-                <span onClick={() => this.props.moves.PlayTo(idx, element.color, "me")}> me</span>
+            <li style={handLiStyle}>
+                <span style={handStyle(element.color)}>{element.color} {element.number}</span> - play to&nbsp;
+                <span onClick={() => this.props.moves.PlayTo(idx, element.color, "middle")} style={buttonStyle()}>middle</span> - play to&nbsp;
+                <span onClick={() => this.props.moves.PlayTo(idx, element.color, "me")} style={buttonStyle()}>me</span>
             </li>
         ))
 
-        const cellStyleMain = {
-            border: '1px solid #555',
-            width: '120px',
-            height: '50px',
-            lineHeight: '50px',
-            textAlign: 'center',
-        };
         const cellStyleSide = {
             border: '1px solid #555',
             width: '55px',
@@ -57,22 +54,22 @@ export class LostCitiesBoard extends React.Component {
         // TODO: Make the hand and board colored.
         let tbody = [];
         // Header(color), opp pile, middle, my pile
-        let headers = colors.flatMap(color => <th style={cellStyleMain}>{color}</th>);
+        let headers = colors.flatMap(color => <th style={cellStyle(color)}>{color}</th>);
         tbody.push(<tr>
             <td style={cellStyleSide}>-</td>
             {headers}</tr>);
         let oppPile = colors.flatMap(color => <td
-            style={cellStyleMain}>{renderPile(this.props.G.playerPiles[opp][color])}</td>);
+            style={cellStyle(color)}>{renderPile(this.props.G.playerPiles[opp][color])}</td>);
         tbody.push(<tr>
             <td style={cellStyleSide}>opp</td>
             {oppPile}</tr>);
-        let middlePile = colors.flatMap(color => <td style={cellStyleMain}
+        let middlePile = colors.flatMap(color => <td style={cellStyle(color)}
                                                      onClick={() => this.props.moves.DrawFrom(color)}>{renderPile(this.props.G.middlePiles[color])}</td>);
         tbody.push(<tr>
             <td style={cellStyleSide}>middle</td>
             {middlePile}</tr>);
         let myPile = colors.flatMap(color => <td
-            style={cellStyleMain}>{renderPile(this.props.G.playerPiles[this.props.playerID][color])}</td>);
+            style={cellStyle(color)}>{renderPile(this.props.G.playerPiles[this.props.playerID][color])}</td>);
         tbody.push(<tr>
             <td style={cellStyleSide}>me</td>
             {myPile}</tr>);
@@ -98,4 +95,46 @@ export class LostCitiesBoard extends React.Component {
 
 function renderPile(pile) {
     return pile.flatMap(card => card.number).join(",");
+}
+
+const colorMapBackground = {
+    "white": "#dedeeef",
+    "green": "#b5e7a0",
+    "red": "#eea29a",
+    "blue": "#92a8d1",
+    "yellow": "#ffef96",
+}
+
+const colorMapForeground = {
+    "white": "black",
+    "green": "green",
+    "red": "red",
+    "blue": "blue",
+    "yellow": "gold",
+}
+
+// TODO: make this look better. colors are too loud.
+function cellStyle(color) {
+    return  {
+        border: '1px solid #555',
+        width: '120px',
+        height: '50px',
+        lineHeight: '50px',
+        textAlign: 'center',
+        "background-color": colorMapBackground[color],
+    };
+}
+
+function handStyle(color) {
+    return  {
+        // "color": colorMapForeground[color],
+        border: '1px solid #555',
+        "background-color": colorMapBackground[color],
+    };
+}
+
+function buttonStyle() {
+    return  {
+        border: '1px solid #555',
+    };
 }
