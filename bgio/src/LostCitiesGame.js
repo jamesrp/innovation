@@ -46,7 +46,6 @@ function PlayTo(G, ctx, handIdx, color, zone) {
     if (ctx.numMoves !== 0) {
         return INVALID_MOVE;
     }
-    ctx.events.endTurn({next: "1"});
     if (!colors.includes(color)) {
         return INVALID_MOVE;
     }
