@@ -6,23 +6,6 @@ export const GloryToRome = {
     setup: mySetup,
     // playerView: PlayerView.STRIP_SECRETS,
 
-    turn: {
-        moveLimit: 1,
-        order: {
-            // Get the initial value of playOrderPos.
-            // This is called at the beginning of the phase.
-            // first: (G, ctx) => {
-            //     return ctx.playOrder.find(element => element === G.leader); // Scared to use indexOf with stringy ===.
-            // },
-            first: (G, ctx) => 0,
-
-            // Get the next value of playOrderPos.
-            // This is called at the end of each turn.
-            // The phase ends if this returns undefined.
-            next: (G, ctx) => (ctx.playOrderPos + 1) % ctx.numPlayers,
-        }
-    },
-
     phases: {
         declare: {
             moves: {Think, Play},
@@ -31,7 +14,6 @@ export const GloryToRome = {
 
         resolve: {
             moves: {ResolveCardPlayed, EndResolveCardPlayed},
-            turn: {moveLimit: 100000}, // can we do infinite? we want to call endTurn ourselves.
         },
     },
 
@@ -90,7 +72,7 @@ function Think(G, ctx, playerID) {
     G[playerID].hand = G[playerID].hand.concat(G.secret.deck.splice(0, toDraw));
 
     if (G.leader === playerID) {
-        G.leader = NextLeader(G.leader);
+        G.leader = nextPlayer(ctx, G.leader, ctx.numPlayers);
         ctx.events.endTurn({next: G.leader});
     } else {
         MarkOneDeclared(G, ctx);
@@ -109,6 +91,7 @@ function Play(G, ctx, id, playerID) {
 
     if (G.leader === playerID) {
         G.numToDeclare = ctx.numPlayers - 1;
+        ctx.events.endTurn({next: nextPlayer(ctx, ctx.playerID, ctx.numPlayers)});
     } else {
         MarkOneDeclared(G, ctx);
     }
@@ -119,6 +102,8 @@ function MarkOneDeclared(G, ctx) {
     if (G.numToDeclare === 0) {
         ctx.events.setPhase('resolve');
         ctx.events.endTurn({next: G.leader});
+    } else {
+        ctx.events.endTurn({next: nextPlayer(ctx, ctx.playerID, ctx.numPlayers)});
     }
 }
 
@@ -129,8 +114,11 @@ function EndResolveCardPlayed(G, ctx) {
     if (G.numToResolve === 0) {
         CleanupCardsPlayed(G, ctx);
         ctx.events.setPhase('declare');
+        G.leader = nextPlayer(ctx, G.leader, ctx.numPlayers);
+        ctx.events.endTurn({next: G.leader});
+    } else {
+        ctx.events.endTurn({next: nextPlayerToResolve(G, ctx, ctx.playerID)});
     }
-    ctx.events.endTurn();
 }
 
 // Does the effect but leaves the card in cardPlayed
@@ -163,6 +151,7 @@ function ResolveCardPlayed(G, ctx, fromZone, playerID) {
             G.public[playerID].stockpile = G.public[playerID].stockpile.concat(G.public.pool.splice(0, 1));
         }
     }
+    // TODO: later once we have clients, we can only do this if player uses up all their moves
     EndResolveCardPlayed(G, ctx);
 }
 
@@ -184,47 +173,55 @@ function mySetup(ctx) {
     let deck = Array(numCards).fill(merchant)
         .concat(Array(numCards).fill(laborer))
         .concat(Array(numCards).fill(craftsman));
-    let hand0 = Array(1).fill(merchant).concat(Array(1).fill(laborer));
-    let hand1 = Array(1).fill(merchant).concat(Array(1).fill(laborer));
-    let pool = Array(1).fill(merchant).concat(Array(1).fill(laborer));
-    // TODO: generalize to 3+ players.
-    // TODO: actually randomize the hands as part of the deck.
-    // TODO: the number of cards in opp hand should be public.
-    return {
+    let G = {
         numToDeclare: ctx.numPlayers,
         numToResolve: 0,
         leader: ctx.currentPlayer,
         public: {
-            pool: pool,
-            '0': {
-                stockpile: Array(0),
-                vault: Array(0),
-                cardPlayed: Array(0),
-            },
-            '1': {
-                stockpile: Array(0),
-                vault: Array(0),
-                cardPlayed: Array(0),
-            },
+            pool: Array(1).fill(merchant).concat(Array(1).fill(laborer)),
         },
         secret: {
             deck: ctx.random.Shuffle(deck),
-            // deck: deck,
         },
-        '0': {
-            hand: hand0,
-        },
-        '1': {
-            hand: hand1,
-        },
+    };
+    for (let i = 0; i < ctx.numPlayers; i++) {
+        let p = i.toString();
+        let hand = Array(1).fill(merchant).concat(Array(1).fill(laborer));
+        G[p] = {
+            hand: hand,
+        };
+        G.public[p] = {
+            stockpile: Array(0),
+            vault: Array(0),
+            cardPlayed: Array(0),
+        };
+
     }
+    // TODO: actually randomize the hands as part of the deck.
+    // TODO: the number of cards in opp hand should be public.
+    return G;
 }
 
-// hacky
-function NextLeader(leader) {
-    if (leader === "0") {
-        return "1";
-    }
-    return "0";
+function nextPlayer(ctx, player, numPlayers) {
+    let a = parseInt(player, 10);
+    let b = a + 1;
+    let c = b % numPlayers;
+    let d = c.toString();
+    ctx.log.setMetadata(a + b + c + d);
+    return d;
+    // return ((parseInt(player, 10) + 1) % numPlayers).toString();
+}
+
+function nextPlayerToResolve(G, ctx, player) {
+    let candidate = nextPlayer(ctx, player);
+    // ctx.log.setMetadata('candidate: ' + candidate + ': cardPlayed: ');
+    // while (G.public[candidate].cardPlayed.length === 0) {
+    //     candidate = nextPlayer(candidate);
+    //     // detect bug/infinite loop if candidate = player
+    //     if (candidate === player) {
+    //         return candidate; // what else are we going to do?
+    //     }
+    // }
+    return candidate;
 }
 

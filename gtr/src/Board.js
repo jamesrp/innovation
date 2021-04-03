@@ -41,6 +41,7 @@ export class GloryToRomeBoard extends React.Component {
             </li>
         ))
 
+        // is there a bug rendering the stockpile?
         let stockpile = [];
         this.props.G.public[this.props.playerID].stockpile.forEach((element, index, array) => pool.push(
             <li onClick={() => this.props.moves.ResolveCardPlayed("stockpile", index, this.props.playerID)}>
