@@ -1,6 +1,6 @@
 import { INVALID_MOVE } from 'boardgame.io/core';
 
-export const TicTacToe = {
+export const Innovation = {
   setup: mySetup,
 
   turn: {

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export class TicTacToeBoard extends React.Component {
+export class InnovationBoard extends React.Component {
   onClick(id) {
     this.props.moves.ClickCell(id, this.props.playerID);
   }
