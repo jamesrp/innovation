@@ -1,5 +1,5 @@
 import React from 'react';
-import {colors, computePoints} from './Game';
+import {colors, computePoints} from './LostCitiesGame';
 
 
 export class LostCitiesBoard extends React.Component {
@@ -22,6 +22,9 @@ export class LostCitiesBoard extends React.Component {
             message = ' - MY TURN!';
         }
 
+        // TODO: feel like I saw a bug where the color didn't refresh
+        // even though the cardname changed, after playing pos1 and drawing
+        // a new card that ended up being pos1.
         let hand = [];
         this.props.G[this.props.playerID].hand.forEach((element, idx, array) => hand.push(
             <tr>

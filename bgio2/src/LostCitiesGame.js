@@ -8,6 +8,7 @@ const maxNumber = 10;
 const numInvestments = 3;
 
 export const LostCities = {
+    name: 'lost-cities',
     setup: mySetup,
 
     turn: {
