@@ -1,4 +1,4 @@
-import {Client} from 'boardgame.io/react';
+import {Client, Lobby} from 'boardgame.io/react';
 import {SocketIO} from 'boardgame.io/multiplayer'
 import {LostCities} from './LostCitiesGame';
 import {LostCitiesBoard} from './LostCitiesBoard';
@@ -32,22 +32,30 @@ const GloryToRomeClient = Client({
     debug: false,
 });
 
-// MakeClient routes a URL like:
-// localhost:3000/game/matchID/1
-// to matchID, seat 1.
-// TODO: should we use query params instead?
-function MakeClient() {
-    let pathArray = window.location.pathname.split('/');
-    let game = pathArray[1];
-    if (game === "lc" || game === "l") {
-        game = "lostcities";
-    } else if (game === "i") {
-        game = "innovation";
-    } else if (game === "g" || game === "gtr") {
-        game = "glorytorome";
-    }
-    let match = game + "/" + pathArray[2];
-    let player = pathArray[3];
+// A helper page with some links.
+// localhost:3000/lobby/gameName
+// localhost:3000/match/gameName/matchID/playerID
+function MainPage() {
+    return <div>
+        <p>Expected one of two URL formats:</p>
+        <p><a href="/lobby">/lobby</a></p>
+        <p><a href="/match/gameName/matchID/playerID">/match/gameName/matchID/playerID</a></p>
+    </div>;
+}
+
+function MakeLobby() {
+    return <div><p>BTW - lobby is broken right now. Just navigate to game URLs yourself.</p><Lobby
+        gameServer={`https://${window.location.hostname}:8000`}
+        lobbyServer={`https://${window.location.hostname}:8080`}
+        gameComponents={[
+            {game: LostCities, board: LostCitiesBoard},
+            {game: Innovation, board: InnovationBoard},
+            {game: GloryToRome, board: GloryToRomeBoard}
+        ]}
+    /></div>;
+}
+
+function MakeClient(game, match, player) {
     let myClient = <p>game not found!</p>;
     if (game === "lostcities") {
         myClient = <LostCitiesClient playerID={player} matchID={match}/>;
@@ -56,18 +64,42 @@ function MakeClient() {
     } else if (game === "glorytorome") {
         myClient = <GloryToRomeClient playerID={player} matchID={match}/>;
     }
-    return <div>
-        <p>window.location.pathname = {window.location.pathname}</p>
-        <p>game = {game}</p>
-        <p>match = {match}</p>
-        <p>player = {player}</p>
-        {myClient}
-    </div>;
+    return myClient;
+}
+
+// RouteRequest routes a URL in one of these formats:
+// localhost:3000/lobby/gameName
+// localhost:3000/match/gameName/matchID/playerID
+// TODO: should we use query params instead?
+function RouteRequest() {
+    let pathArray = window.location.pathname.split('/');
+    if (pathArray.length <= 1) {
+        return MainPage();
+    }
+    let lobbyOrMatch = pathArray[1];
+    let game = pathArray[2];
+    if (lobbyOrMatch === "match") {
+        if (game === "lc" || game === "l") {
+            game = "lostcities";
+        } else if (game === "i") {
+            game = "innovation";
+        } else if (game === "g" || game === "gtr") {
+            game = "glorytorome";
+        }
+        let match = game + "/" + pathArray[3];
+        let player = pathArray[4];
+        return MakeClient(game, match, player);
+    }
+    if (lobbyOrMatch === "lobby") {
+        return MakeLobby();
+    }
+    // Didn't understand URL - serve main page.
+    return MainPage();
 }
 
 const App = () => (
     <div>
-        {MakeClient()}
+        {RouteRequest()}
     </div>
 );
 

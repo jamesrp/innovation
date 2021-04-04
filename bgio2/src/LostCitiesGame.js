@@ -9,6 +9,8 @@ const numInvestments = 3;
 
 export const LostCities = {
     name: 'lost-cities',
+    minPlayers: 2,
+    maxPlayers: 2,
     setup: mySetup,
 
     turn: {

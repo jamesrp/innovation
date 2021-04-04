@@ -2,6 +2,8 @@ import { INVALID_MOVE } from 'boardgame.io/core';
 
 export const Innovation = {
   name: 'innovation',
+  minPlayers: 2,
+  maxPlayers: 4,
   setup: mySetup,
 
   turn: {

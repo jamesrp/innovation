@@ -4,6 +4,8 @@ import {PlayerView} from 'boardgame.io/core';
 
 export const GloryToRome = {
     name: 'glory-to-rome',
+    minPlayers: 2,
+    maxPlayers: 4,
     setup: mySetup,
     // playerView: PlayerView.STRIP_SECRETS,
 
