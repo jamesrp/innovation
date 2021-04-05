@@ -28,7 +28,7 @@ const GloryToRomeClient = Client({
     game: GloryToRome,
     board: GloryToRomeBoard,
     multiplayer: SocketIO({server: 'localhost:8000'}),
-    numPlayers: 2,
+    numPlayers: 3,
     debug: false,
 });
 

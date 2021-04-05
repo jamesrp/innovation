@@ -39,6 +39,29 @@
       "dogmas_function": [
         "draw(1,2)"
       ]
+    },
+    {
+      "name": "Tools",
+      "age": 1,
+      "color": "BLUE",
+      "main_symbol": "BULB",
+      "symbols": [
+        "HEX",
+        "",
+        "",
+        "BULB",
+        "BULB",
+        "CASTLE"
+      ],
+      "dogmas_english": [
+        "You may return three cards from your hand. If you do, draw and meld a 3."
+      ],
+      "dogmas_function": [
+        "If(May(Return(3,Hand)),Meld(Draw(3,1))"
+      ],
+      "dogmas_alternative": [
+        {}
+      ]
     }
   ]
 }

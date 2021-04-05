@@ -1,6 +1,23 @@
 import {INVALID_MOVE} from 'boardgame.io/core';
 import {PlayerView} from 'boardgame.io/core';
 
+// The main flow of who moves next is driven by a stack.
+// If the stack is empty, that means it's the current leader's turn to move.
+// Otherwise, there should be some objects on the stack describing whose
+// turn it is to move and what they can do.
+// Then in our move handlers, we can check this for correctness.
+// TODO: does it make sense to use steps/phases for any of this?
+// A worked example would be:
+// 0: stack empty. p1 leader. p1 needs to lead or think.
+//    - p1 thinks.
+// 1: stack empty. p2 leader. p2 needs to lead or think.
+//    - p2 leads laborer.
+// 2: stack is: [p2Laborer, p1FollowOrThink, p4FollowOrThink, p3FollowOrThink].
+//    - p3 follows.
+// 3: stack is: [p2Laborer, p3Laborer, p1FollowOrThink, p4FollowOrThink].
+//    - p4 thinks. They have a vomitorium.
+// 4: stack is: [p2Laborer, p3Laborer, p1FollowOrThink, p4FollowOrThink].
+//    - p3 follows.
 
 export const GloryToRome = {
     name: 'glory-to-rome',
