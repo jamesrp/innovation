@@ -21,7 +21,7 @@ const InnovationClient = Client({
     board: InnovationBoard,
     multiplayer: SocketIO({server: 'localhost:8000'}),
     numPlayers: 2,
-    debug: false,
+    debug: true,
 });
 
 const GloryToRomeClient = Client({

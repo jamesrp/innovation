@@ -1,70 +1,53 @@
 import React from 'react';
 
 export class InnovationBoard extends React.Component {
-  onClick(id) {
-    this.props.moves.ClickCell(id, this.props.playerID);
-  }
-
   render() {
-    let winner = '';
-    if (this.props.ctx.gameover) {
-      winner =
-        this.props.ctx.gameover.winner !== undefined ? (
-          <div id="winner">Winner: {this.props.ctx.gameover.winner}</div>
-        ) : (
-          <div id="winner">Draw!</div>
-        );
-    }
     let message = '';
-    if (this.props.ctx.phase === "startPhase") {
-      let positions = [0, 1, 2];
-      if (this.props.playerID === "1") {
-        positions = [6, 7, 8];
-      }
-      const symbols = positions.map(i => this.props.G.cells[i]);
-      if (symbols.every(i => i === null)) {
-        message = 'Please select a starting position.';
+    if (this.props.ctx.gameover) {
+      if (this.props.ctx.gameover.winner !== undefined) {
+        message = " - Player " + this.props.ctx.gameover.winner + " wins!";
+        if (this.props.ctx.gameover.winner === this.props.playerID) {
+          message = " - I win!";
+        }
       } else {
-        message = 'Waiting for opponent to select starting position.';
+        message = " - it's a draw!";
       }
-    } else {
-      if (this.props.playerID === this.props.ctx.currentPlayer) {
-        message = 'Please make the next move.';
-      } else {
-        message = 'Waiting for opponent to make the next move.';
+
+    } else if ("startPhase" === this.props.ctx.phase) {
+      message = '';
+      if (Object.keys(this.props.ctx.activePlayers).includes(this.props.playerID)) {
+          message = ' - MY TURN!';
       }
+    } else if (this.props.playerID === this.props.ctx.currentPlayer) {
+        message = ' - MY TURN!';
     }
 
-    const cellStyle = {
-      border: '1px solid #555',
-      width: '50px',
-      height: '50px',
-      lineHeight: '50px',
-      textAlign: 'center',
-    };
+    let hand = [];
+    // For cards in hand, these are always ChooseOpener commands for now.
+    // TODO: if we are out of chooseOpener, use different fn.
+    this.props.G[this.props.playerID].hand.forEach(element => hand.push(
+        <li onClick={() => this.props.moves.ChooseOpener(element.id)}>
+          {element.name}
+        </li>
+    ))
 
-    let tbody = [];
-    for (let i = 0; i < 3; i++) {
-      let cells = [];
-      for (let j = 0; j < 3; j++) {
-        const id = 3 * i + j;
-        cells.push(
-          <td style={cellStyle} key={id} onClick={() => this.onClick(id)}>
-            {this.props.G.cells[id]}
-          </td>
-        );
-      }
-      tbody.push(<tr key={i}>{cells}</tr>);
-    }
+    let board = [];
+    // For cards in hand, these are always ChooseOpener commands for now.
+    // TODO: if we are out of chooseOpener, use different fn.
+    this.props.G[this.props.playerID].board.forEach(element => board.push(
+        <li>
+          {element.name}
+        </li>
+    ))
 
     return (
       <div>
         <h1> Player {this.props.playerID} board</h1>
         {message}
-        <table id="board">
-          <tbody>{tbody}</tbody>
-        </table>
-        {winner}
+        <h4>My Hand</h4>
+        <ul>{hand}</ul>
+        <h4>My board</h4>
+        <ul>{board}</ul>
       </div>
     );
   }
