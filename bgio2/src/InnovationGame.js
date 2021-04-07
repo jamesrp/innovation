@@ -25,24 +25,48 @@ export const Innovation = {
 
         mainPhase: {
             moves: {DrawAction, MeldAction, AchieveAction, DogmaAction},
+            endIf: G => (G.stack.length !== 0),
+            next: 'resolveStack',
             turn: {
                 order: {
                     // Get the initial value of playOrderPos.
                     // This is called at the beginning of the phase.
-                    first: (G, ctx) => 0,
+                    first: (G, ctx) => 0, // TODO: how to determine?
 
                     // Get the next value of playOrderPos.
                     // This is called at the end of each turn.
                     // The phase ends if this returns undefined.
                     next: (G, ctx) => {
-                        // TODO: if stack is nonempty, handle that. else:
                         return parseInt(G.turnOrderStateMachine.leader);
                     },
                 }
             }
         },
+        resolveStack: {
+            moves: {ClickMenu, ClickCard},
+            endIf: G => (G.stack.length === 0),
+            next: 'mainPhase',
+            turn: {
+                order: {
+                    // Get the initial value of playOrderPos.
+                    // This is called at the beginning of the phase.
+                    first: (G, ctx) => {
+                        return G.stack[G.stack.length - 1].whoseTurn();
+                    },
+
+                    // Get the next value of playOrderPos.
+                    // This is called at the end of each turn.
+                    // The phase ends if this returns undefined.
+                    next: (G, ctx) => {
+                        return G.stack[G.stack.length - 1].whoseTurn();
+                    },
+                }
+            }
+        },
+        // phase = main, brodo clicks Math
         // BOT - sharedraw - brodo math - jpfeiff  math
-        // BOT - sharedraw - brodo wheel - jpfeiff  wheel
+        // framework notices stack nonempty and sets phase = resolve
+        // TODO: jpfeiff becomes current player?
     },
 
 };
@@ -65,6 +89,14 @@ function accountForActions(G, ctx) {
         sm.movesAsLeader = 0;
         // ctx.events.endTurn({next: sm.leader});
     }
+}
+
+function ClickMenu(G, ctx) {
+    return INVALID_MOVE;
+}
+
+function ClickCard(G, ctx) {
+    return INVALID_MOVE;
 }
 
 function DrawAction(G, ctx) {
