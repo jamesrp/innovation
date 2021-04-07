@@ -24,20 +24,53 @@ export const Innovation = {
         },
 
         mainPhase: {
-            moves: {Draw, Meld, Achieve, Dogma},
+            moves: {DrawAction, MeldAction, AchieveAction, DogmaAction},
+            turn: {
+                order: {
+                    // Get the initial value of playOrderPos.
+                    // This is called at the beginning of the phase.
+                    first: (G, ctx) => 0,
+
+                    // Get the next value of playOrderPos.
+                    // This is called at the end of each turn.
+                    // The phase ends if this returns undefined.
+                    next: (G, ctx) => {
+                        // TODO: if stack is nonempty, handle that. else:
+                        return parseInt(G.turnOrderStateMachine.leader);
+                    },
+                }
+            }
         },
+        // BOT - sharedraw - brodo math - jpfeiff  math
+        // BOT - sharedraw - brodo wheel - jpfeiff  wheel
     },
 
 };
 
-function Draw(G, ctx) {
+// accountForActions mutates the actions state machine
+// after a player uses a main-phase action.
+//
+function accountForActions(G, ctx) {
+    // TODO: implement.
+    let sm = G.turnOrderStateMachine;
+    if (!sm.areOpenersPlayed) {
+        sm.areOpenersPlayed = true;
+        // TODO: do alphabetical sort thing.
+    }
+    // TODO: handle initial phase where you get 1 move.
+    // TODO: update numMovesPlayed and currLeader.
+    sm.movesAsLeader += 1;
+    if (sm.movesAsLeader == 2) {
+        sm.leader = nextPlayer(sm.leader, ctx.numPlayers);
+        sm.movesAsLeader = 0;
+        // ctx.events.endTurn({next: sm.leader});
+    }
+}
+
+function DrawAction(G, ctx) {
     let ageToDraw = topAge(G, ctx.playerID);
     drawAux(G, ctx.playerID, ageToDraw);
-    G.movesAsLeader += 1;
-    if (G.movesAsLeader == 2) {
-        G.leader = nextPlayer(G.leader, ctx.numPlayers);
-        ctx.events.endTurn({next: G.leader});
-    }
+    accountForActions(G, ctx);
 }
 
 function drawMultiple(G, playerID, age, num) {
@@ -80,16 +113,17 @@ function getScore(G, playerID) {
     return total;
 }
 
-function Meld(G, ctx, id) {
+function MeldAction(G, ctx, id) {
     let index = G[ctx.playerID].hand.findIndex(element => (element.id === id));
     if (index === -1) {
         return INVALID_MOVE;
     }
     G[ctx.playerID].board.push(G[ctx.playerID].hand[index]);
     G[ctx.playerID].hand.splice(index, 1);
+    accountForActions(G, ctx);
 }
 
-function Achieve(G, ctx, id) {
+function AchieveAction(G, ctx, id) {
     let index = G.achievements.findIndex(element => (element.id === id));
     if (index === -1) {
         return INVALID_MOVE;
@@ -100,6 +134,7 @@ function Achieve(G, ctx, id) {
     }
     G[ctx.playerID].achievements.push(G.achievements[index]);
     G.achievements.splice(index, 1);
+    accountForActions(G, ctx);
 }
 
 function isEligible(G, playerID, achievementAge) {
@@ -107,7 +142,7 @@ function isEligible(G, playerID, achievementAge) {
     return (topAge(G, playerID) >= achievementAge && getScore(G, playerID) >= 5 * achievementAge);
 }
 
-function Dogma(G, ctx, id) {
+function DogmaAction(G, ctx, id) {
     // TODO: need to check if the card is a top card of the board, not just onboard.
     let index = G[ctx.playerID].board.findIndex(element => (element.id === id));
     if (index === -1) {
@@ -122,10 +157,11 @@ function Dogma(G, ctx, id) {
         let fn = eval(fnObj.name);
         fn(G, ctx.playerID, ...(fnObj.extraArgs));
     });
+    accountForActions(G, ctx);
 }
 
 function ChooseOpener(G, ctx, id) {
-    let didMeld = Meld(G, ctx, id);
+    let didMeld = MeldAction(G, ctx, id);
     if (didMeld === INVALID_MOVE) {
         return INVALID_MOVE;
     }
@@ -151,12 +187,16 @@ function ChooseOpener(G, ctx, id) {
 function mySetup(ctx) {
     let G = {
         decks: generateDecks(ctx),
+        turnOrderStateMachine: {
+            areOpenersPlayed: false,
+            numSingleTurnsRemaining: false,
+            leader: "0",
+            movesAsLeader: 0,
+            initialTurnsRemaining: Math.floor(ctx.numPlayers / 2),
+        },
+        stack: Array(0),
         achievements: {},
         numDoneOpening: 0,
-        leader: "0",
-        movesAsLeader: 0,
-        // TODO: wire through initialTurnsRemaining to the 4 main actions.
-        initialTurnsRemaining: Math.floor(ctx.numPlayers / 2),
     };
     for (let i = 0; i < ctx.numPlayers; i++) {
         let playerData = {
