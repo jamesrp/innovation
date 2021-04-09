@@ -45,8 +45,8 @@ function MainPage() {
 
 function MakeLobby() {
     return <div><p>BTW - lobby is broken right now. Just navigate to game URLs yourself.</p><Lobby
-        gameServer={`https://${window.location.hostname}:8000`}
-        lobbyServer={`https://${window.location.hostname}:8080`}
+        gameServer={`http://${window.location.hostname}:8000`}
+        lobbyServer={`http://${window.location.hostname}:8080`}
         gameComponents={[
             {game: LostCities, board: LostCitiesBoard},
             {game: Innovation, board: InnovationBoard},
