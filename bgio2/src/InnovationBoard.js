@@ -30,7 +30,36 @@ export class InnovationBoard extends React.Component {
                 Age {element} : {this.props.G.decks[element].length} cards left
             </li>
         ))
-        // TODO: need clickCard everywhere.
+
+        // Depending on the phase, make different things clickable.
+        // TODO: need to display other player's board etc.
+        if (this.props.ctx.phase === "resolveStack") {
+            let menu = '';
+            // TODO bug - shouldn't stack always have something in it if we have it?
+            // if (this.props.G.stack.length !== 0) {
+            //     let topStackable = this.props.G.stack[this.props.G.stack - 1];
+            //     if (topStackable.menuOptions !== undefined) {
+            //         menu = renderList(topStackable.menuOptions, "Menu options", x => x, element => this.props.moves.ClickMenu(element));
+            //     }
+            // }
+            return (
+                <div>
+                    <h1> Player {this.props.playerID} board</h1>
+                    {message}
+                    <h4>Resolving stack...</h4>
+                    {menu}
+                    {renderCardList(this.props.G[this.props.playerID].hand, "My hand", element => this.props.moves.ClickCard(element.id))}
+                    {renderCardList(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.ClickCard(element.id))}
+                    {renderCardList(this.props.G[this.props.playerID].achievements, "My achievements")}
+                    {renderCardList(this.props.G.achievements, "Unclaimed achievements", element => this.props.moves.ClickCard(element.id))}
+                    {renderCardList(this.props.G[this.props.playerID].score, "My score", element => this.props.moves.ClickCard(element.id))}
+                    {renderList(this.props.G.stack, "The Stack", x => x.name + "[player " + x.playerID + "]")}
+                    {renderList(this.props.G.log, "Log", x => x)}
+                    <h4>Decks</h4>
+                    <ul>{decks}</ul>
+                </div>
+            );
+        }
         return (
             <div>
                 <h1> Player {this.props.playerID} board</h1>
@@ -41,6 +70,7 @@ export class InnovationBoard extends React.Component {
                 {renderCardList(this.props.G[this.props.playerID].achievements, "My achievements")}
                 {renderCardList(this.props.G.achievements, "Unclaimed achievements", element => this.props.moves.AchieveAction(element.id))}
                 {renderCardList(this.props.G[this.props.playerID].score, "My score")}
+                {renderList(this.props.G.stack, "The Stack", x => x.name + "[player " + x.playerID + "]")}
                 {renderList(this.props.G.log, "Log", x => x)}
                 <h4>Decks</h4>
                 <ul>{decks}</ul>

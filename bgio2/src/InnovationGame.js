@@ -6,7 +6,61 @@ const functionsTable = {
     "wheel": (G, playerID) => drawMultiple(G, playerID, 1, 2),
     "writing": (G, playerID) => drawMultiple(G, playerID, 2, 1),
     "shareDraw": (G, playerID) => drawNormal(G, playerID),
+    "scoreOneFromHand": (G, playerID, cardID) => {
+        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
+        if (index === -1) {
+            return INVALID_MOVE;
+        }
+        G[playerID].score.push(G[playerID].hand[index]);
+        G[playerID].hand.splice(index, 1);
+    },
+    "mayDrawAThree": (G, playerID, msg) => {
+        if (msg === "no") {
+            return;
+        }
+        if (msg === "yes") {
+            drawMultiple(G, playerID, 3, 1)
+            return;
+        }
+        return INVALID_MOVE;
+    },
 };
+
+const stackablesTable = {
+    "wheel": (G, playerID) => ({
+        name: "wheel",
+        playerToMove: "",
+        executeBlind: "wheel",
+        playerID: playerID,
+    }),
+    "writing": (G, playerID) => ({
+        name: "writing",
+        playerToMove: "",
+        executeBlind: "writing",
+        playerID: playerID,
+    }),
+    "shareDraw": (G, playerID) => ({
+        name: "shareDraw",
+        playerToMove: "",
+        executeBlind: "shareDraw",
+        playerID: playerID,
+    }),
+    "scoreOneFromHand": (G, playerID) => ({
+        name: "scoreOneFromHand",
+        playerToMove: playerID,
+        executeWithCard: "scoreOneFromHand",
+        cardOptions: Array(0), // TODO: fill out with player's hand.
+        // TODO: if player has no hand make it a noop.
+        playerID: playerID,
+    }),
+    "mayDrawAThree": (G, playerID) => ({
+        name: "mayDrawAThree",
+        playerToMove: playerID,
+        executeWithMenu: "mayDrawAThree",
+        menuOptions: Array.of("yes", "no"),
+        playerID: playerID,
+    }),
+}
 
 // TODO:
 // - Finish the stack pusher and unwinder.
@@ -31,18 +85,24 @@ function TryUnwindStack(G, ctx) {
 }
 
 function executeBlind(G, ctx, stackable) {
-    let md = stackable.fnName + ': topAge = ' + topAge(G, stackable.playerID).toString();
+    let md = stackable.executeBlind + ': topAge = ' + topAge(G, stackable.playerID).toString();
     console.log(md);
     G.log.push(md);
-    functionsTable[stackable.fnName](G, stackable.playerID);
+    functionsTable[stackable.executeBlind](G, stackable.playerID);
 }
 
-function executeWithCard(G, ctx, stackable, id) {
-    // TODO
+function executeWithCard(G, ctx, stackable, cardID) {
+    let md = stackable.executeWithCard + ': ' + cardID;
+    console.log(md);
+    G.log.push(md);
+    functionsTable[stackable.executeWithCard](G, stackable.playerID, cardID);
 }
 
 function executeWithMenu(G, ctx, stackable, msg) {
-    // TODO
+    let md = stackable.executeWithMenu + ': ' + msg;
+    console.log(md);
+    G.log.push(md);
+    functionsTable[stackable.executeWithMenu](G, stackable.playerID, msg);
 }
 
 // Stackable:
@@ -261,21 +321,9 @@ function DogmaAction(G, ctx, id) {
         return INVALID_MOVE;
     }
     let card = G[ctx.playerID].board[index];
-    // TODO: for now we always share, actually check symbols.
-    G.stack.push({
-        name: "shareDraw",
-        playerToMove: "",
-        fnName: "shareDraw",
-        playerID: ctx.playerID,
-    })
-    card.dogmasFunction.forEach(fnName => {
-        G.stack.push({
-            name: fnName,
-            playerToMove: "",
-            fnName: fnName,
-            playerID: ctx.playerID,
-        })
-    });
+    // TODO: for now we always share; need to actually check symbols.
+    G.stack.push(stackablesTable["shareDraw"](G, ctx.playerID));
+    card.dogmasFunction.forEach(dogmaName => G.stack.push(stackablesTable[dogmaName](G, ctx.playerID)));
 
     TryUnwindStack(G, ctx);
     accountForActions(G, ctx);
@@ -360,7 +408,7 @@ function generateDecks(ctx) {
 
 function loadCards(ctx) {
     // TODO: unstub.
-    let multiplicity = 5;
+    let multiplicity = 3;
     let cards = Array(0);
     for (let i = 0; i < multiplicity; i++) {
         for (let age = 1; age < 11; age++) {
@@ -383,6 +431,26 @@ function loadCards(ctx) {
                 dogmasFunction: ["writing"],
                 mainSymbol: "bulb",
                 symbols: ["hex", "", "", "bulb", "bulb", "crown"],
+            });
+            cards.push({
+                id: ctx.random.Number().toString(),
+                color: "purple",
+                age: age,
+                name: "Mostly Philosophy - age " + age.toString() + " - copy " + i.toString(),
+                dogmasEnglish: ["Score a card from your hand."],
+                dogmasFunction: ["scoreOneFromHand"],
+                mainSymbol: "bulb",
+                symbols: ["hex", "", "", "bulb", "bulb", "bulb"],
+            });
+            cards.push({
+                id: ctx.random.Number().toString(),
+                color: "yellow",
+                age: age,
+                name: "MegaWriting - age " + age.toString() + " - copy " + i.toString(),
+                dogmasEnglish: ["You may draw a 3."],
+                dogmasFunction: ["mayDrawAThree"],
+                mainSymbol: "leaf",
+                symbols: ["leaf", "", "", "hex", "leaf", "bulb"],
             });
         }
     }
