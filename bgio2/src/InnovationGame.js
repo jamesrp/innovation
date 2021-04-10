@@ -308,7 +308,7 @@ function mySetup(ctx) {
             initialTurnsRemaining: Math.floor(ctx.numPlayers / 2),
         },
         stack: Array(0),
-        achievements: {},
+        achievements: Array(0),
         numDoneOpening: 0,
     };
     for (let i = 0; i < ctx.numPlayers; i++) {
@@ -324,8 +324,7 @@ function mySetup(ctx) {
         G[i.toString()] = playerData;
     }
     for (let i = 1; i < 10; i++) {
-        let card = G.decks[i].pop();
-        G.achievements[i.toString()] = Array(1).fill(card);
+        G.achievements.push(G.decks[i].pop());
     }
     if (acceleratedSetup) {
         for (let age = 2; age < 8; age++) {
