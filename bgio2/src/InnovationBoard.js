@@ -36,12 +36,12 @@ export class InnovationBoard extends React.Component {
                 <h1> Player {this.props.playerID} board</h1>
                 {message}
                 <h4 onClick={() => this.props.moves.DrawAction()}>Click to draw!</h4>
-                {renderList(this.props.G[this.props.playerID].hand, "My hand", element => this.props.moves.MeldAction(element.id))}
-                {renderList(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.DogmaAction(element.id))}
-                {renderList(this.props.G[this.props.playerID].achievements, "My achievements")}
-                {renderList(this.props.G.achievements, "Unclaimed achievements",element => this.props.moves.AchieveAction(element.id))}
-                {renderList(this.props.G[this.props.playerID].score, "My score")}
-                {renderList(this.props.G.log, "Log")}
+                {renderCardList(this.props.G[this.props.playerID].hand, "My hand", element => this.props.moves.MeldAction(element.id))}
+                {renderCardList(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.DogmaAction(element.id))}
+                {renderCardList(this.props.G[this.props.playerID].achievements, "My achievements")}
+                {renderCardList(this.props.G.achievements, "Unclaimed achievements", element => this.props.moves.AchieveAction(element.id))}
+                {renderCardList(this.props.G[this.props.playerID].score, "My score")}
+                {renderList(this.props.G.log, "Log", x => x)}
                 <h4>Decks</h4>
                 <ul>{decks}</ul>
             </div>
@@ -49,19 +49,23 @@ export class InnovationBoard extends React.Component {
     }
 }
 
-function renderList(arr, name, onClickFn) {
+function renderCardList(arr, name, onClickFn) {
+    return renderList(arr, name, c => c.name, onClickFn);
+}
+
+function renderList(arr, name, nameFn, onClickFn) {
     let lis = [];
     arr.forEach(element => {
         if (onClickFn === undefined) {
             lis.push(
                 <li>
-                    {element.name}
+                    {nameFn(element)}
                 </li>
             )
         } else {
             lis.push(
                 <li onClick={() => onClickFn(element)}>
-                    {element.name}
+                    {nameFn(element)}
                 </li>
             )
         }
