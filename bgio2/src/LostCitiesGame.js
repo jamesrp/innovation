@@ -61,12 +61,8 @@ function PlayTo(G, ctx, handIdx, color, zone) {
     }
     // For playing to your board, we need to make sure the numbers would stay increasing.
     let cardToPlay = G[ctx.playerID].hand.splice(handIdx, 1)[0];
-    if (G.playerPiles[ctx.playerID][color].length !== 0) {
-        let topCard = G.playerPiles[ctx.playerID][color].pop();
-        if (isSmaller(cardToPlay.number, topCard.number)) {
-            return INVALID_MOVE;
-        }
-        G.playerPiles[ctx.playerID][color].push(topCard);
+    if (!canPlay(G.playerPiles[ctx.playerID][color], cardToPlay)) {
+        return INVALID_MOVE;
     }
     G.playerPiles[ctx.playerID][color].push(cardToPlay);
 }
@@ -184,4 +180,12 @@ function sortHand(hand) {
         }
         return colors.indexOf(a.color) - colors.indexOf(b.color);
     });
+}
+
+export function canPlay(arr, cardToPlay) {
+    if (arr.length === 0) {
+        return true;
+    }
+    let topCard = arr[arr.length - 1];
+    return !isSmaller(cardToPlay.number, topCard.number);
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import {colors, computePoints} from './LostCitiesGame';
+import {colors, computePoints, canPlay} from './LostCitiesGame';
 
 
 export class LostCitiesBoard extends React.Component {
@@ -8,6 +8,7 @@ export class LostCitiesBoard extends React.Component {
         // TODO: make messaging indicate whether you have to play or draw.
         // TODO: indicate which moves are clickable depending on this.
         let message = '';
+        let myOption = '';
         if (this.props.ctx.gameover) {
             if (this.props.ctx.gameover.winner !== undefined) {
                 message = " - Player " + this.props.ctx.gameover.winner + " wins!";
@@ -19,6 +20,10 @@ export class LostCitiesBoard extends React.Component {
             }
 
         } else if (this.props.playerID === this.props.ctx.currentPlayer) {
+            myOption = 'play';
+            if (this.props.ctx.numMoves === 1) {
+                myOption = 'draw';
+            }
             message = ' - MY TURN!';
         }
 
@@ -26,16 +31,20 @@ export class LostCitiesBoard extends React.Component {
         // even though the cardname changed, after playing pos1 and drawing
         // a new card that ended up being pos1.
         let hand = [];
-        this.props.G[this.props.playerID].hand.forEach((element, idx, array) => hand.push(
-            <tr>
-                <td style={handStyle(element.color)}>{element.color} {element.number}</td>
-                <td onClick={() => this.props.moves.PlayTo(idx, element.color, "middle")} style={buttonStyle()}>play to
-                    middle
-                </td>
-                <td onClick={() => this.props.moves.PlayTo(idx, element.color, "me")} style={buttonStyle()}>play to me
-                </td>
-            </tr>
-        ));
+        this.props.G[this.props.playerID].hand.forEach((element, idx, array) => {
+            let validPlay = canPlay(this.props.G.playerPiles[this.props.playerID][element.color], element);
+            hand.push(
+                <tr>
+                    <td style={handStyle(element.color)}>{element.color} {element.number}</td>
+                    <td onClick={() => this.props.moves.PlayTo(idx, element.color, "middle")}
+                        style={buttonStyle(myOption === 'play')}>discard
+                    </td>
+                    <td onClick={() => this.props.moves.PlayTo(idx, element.color, "me")}
+                        style={buttonStyle(myOption === 'play' && validPlay)}>play
+                    </td>
+                </tr>
+            )
+        });
 
         let opp = "0";
         if (this.props.playerID === "0") {
@@ -51,24 +60,25 @@ export class LostCitiesBoard extends React.Component {
         // Header(color), opp pile, middle, my pile
         let headers = colors.flatMap(color => <th style={cellStyle(color)}>{color}</th>);
         tbody.push(<tr>
-            <td style={cellStyleSideClickable('brown')}
+            <td style={cellStyleSide('brown', (myOption === 'draw'))}
                 onClick={() => this.props.moves.DrawFrom("deck")}> Deck: {this.props.G.deckSize}
             </td>
             {headers}</tr>);
         let oppPile = colors.flatMap(color => <td
             style={cellStyle(color)}>{renderPile(this.props.G.playerPiles[opp][color])}</td>);
         tbody.push(<tr>
-            <td style={cellStyleSide('clear')}>opp: {oppPoints}</td>
+            <td style={cellStyleSide('clear', false)}>opp: {oppPoints}</td>
             {oppPile}</tr>);
-        let middlePile = colors.flatMap(color => <td style={cellStyleClickable(color)}
-                                                     onClick={() => this.props.moves.DrawFrom(color)}>{renderPile(this.props.G.middlePiles[color])}</td>);
+        let middlePile = colors.flatMap(color => <td
+            style={cellStyleClickable(color, this.props.G.middlePiles[color].length !== 0 && (myOption === 'draw'))}
+            onClick={() => this.props.moves.DrawFrom(color)}>{renderPile(this.props.G.middlePiles[color])}</td>);
         tbody.push(<tr>
-            <td style={cellStyleSide('clear')}>middle</td>
+            <td style={cellStyleSide('clear', false)}>middle</td>
             {middlePile}</tr>);
         let myPile = colors.flatMap(color => <td
             style={cellStyle(color)}>{renderPile(this.props.G.playerPiles[this.props.playerID][color])}</td>);
         tbody.push(<tr>
-            <td style={cellStyleSide('clear')}>me: {myPoints}</td>
+            <td style={cellStyleSide('clear', false)}>me: {myPoints}</td>
             {myPile}</tr>);
 
 
@@ -114,21 +124,20 @@ function cellStyle(color) {
     };
 }
 
-function cellStyleClickable(color) {
+function cellStyleClickable(color, clickable) {
     let s = cellStyle(color);
-    s.border = '3px solid #555';
+    if (clickable) {
+        s.border = '3px solid #555';
+    }
     return s;
 }
 
-function cellStyleSide(color) {
+function cellStyleSide(color, clickable) {
     let s = cellStyle(color);
     s.width = '80px';
-    return s;
-}
-
-function cellStyleSideClickable(color) {
-    let s = cellStyleSide(color);
-    s.border = '3px solid #555';
+    if (clickable) {
+        s.border = '3px solid #555';
+    }
     return s;
 }
 
@@ -143,9 +152,13 @@ function handStyle(color) {
     };
 }
 
-function buttonStyle() {
+function buttonStyle(clickable) {
+    let border = '1px solid #555';
+    if (clickable) {
+        border = '3px solid #555';
+    }
     return {
-        border: '3px solid #555',
+        border: border,
         width: '120px',
         height: '25px',
         lineHeight: '25px',
