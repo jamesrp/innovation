@@ -1,4 +1,4 @@
-import {INVALID_MOVE} from 'boardgame.io/core';
+import {INVALID_MOVE, TurnOrder} from 'boardgame.io/core';
 
 const acceleratedSetup = true; // Give each player a bunch of stuff to speed up debugging.
 
@@ -61,11 +61,18 @@ export const Innovation = {
     maxPlayers: 4,
     setup: mySetup,
 
+    turn: {
+        moveLimit: 1,
+    },
+
     moves: {
         MeldAction
     },
 
     phases: {
+        // TODO: can we get rid of the stage here and just do this?
+        //   order: TurnOrder.CUSTOM(['1', '3']),
+        // with moveLimit=1?
         startPhase: {
             moves: {MeldAction},
             stages: {
@@ -93,6 +100,7 @@ export const Innovation = {
             endIf: G => (G.stack.length !== 0),
             next: 'resolveStack',
             turn: {
+                moveLimit: 1,
                 order: {
                     // Get the initial value of playOrderPos.
                     // This is called at the beginning of the phase.
@@ -102,6 +110,9 @@ export const Innovation = {
                     // This is called at the end of each turn.
                     // The phase ends if this returns undefined.
                     next: (G, ctx) => {
+                        // seems to not be getting called?
+                        console.log("checking next player in mainPhase");
+                        console.log(parseInt(G.turnOrderStateMachine.leader));
                         return parseInt(G.turnOrderStateMachine.leader);
                     },
                 }
@@ -114,6 +125,7 @@ export const Innovation = {
             endIf: G => (G.stack.length === 0),
             next: 'mainPhase',
             turn: {
+                moveLimit: 1,
                 order: {
                     // Get the initial value of playOrderPos.
                     // This is called at the beginning of the phase.
@@ -143,19 +155,12 @@ function playerPosFromStackable(G, ctx) {
 // after a player uses a main-phase action.
 //
 function accountForActions(G, ctx) {
-    // TODO: implement.
-    let sm = G.turnOrderStateMachine;
-    if (!sm.areOpenersPlayed) {
-        sm.areOpenersPlayed = true;
-        // TODO: do alphabetical sort thing.
-    }
-    // TODO: handle initial phase where you get 1 move.
-    // TODO: update numMovesPlayed and currLeader.
-    sm.movesAsLeader += 1;
-    if (sm.movesAsLeader == 2) {
-        sm.leader = nextPlayer(sm.leader, ctx.numPlayers);
-        sm.movesAsLeader = 0;
-        // ctx.events.endTurn({next: sm.leader});
+    // TODO: we don't handle the initial turns where you only get 1 action.
+    G.turnOrderStateMachine.movesAsLeader += 1;
+    if (G.turnOrderStateMachine.movesAsLeader == 2) {
+        G.turnOrderStateMachine.leader = nextPlayer(G.turnOrderStateMachine.leader, ctx.numPlayers);
+        G.turnOrderStateMachine.movesAsLeader = 0;
+        G.turnOrder = Array.of(G.turnOrderStateMachine.leader);
     }
 }
 
@@ -276,6 +281,7 @@ function DogmaAction(G, ctx, id) {
     accountForActions(G, ctx);
 }
 
+// TODO: does this work?
 function openingPhaseBookkeeping(G, ctx) {
     G.numDoneOpening += 1;
     if (G.numDoneOpening === ctx.numPlayers) {
@@ -301,7 +307,6 @@ function mySetup(ctx) {
         log: Array(0),
         decks: generateDecks(ctx),
         turnOrderStateMachine: {
-            areOpenersPlayed: false,
             numSingleTurnsRemaining: false,
             leader: "0",
             movesAsLeader: 0,
