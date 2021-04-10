@@ -14,12 +14,6 @@ export class InnovationBoard extends React.Component {
             } else {
                 message = " - it's a draw!";
             }
-
-        } else if ("startPhase" === this.props.ctx.phase) {
-            message = '';
-            if (Object.keys(this.props.ctx.activePlayers).includes(this.props.playerID)) {
-                message = ' - MY TURN!';
-            }
         } else if (this.props.playerID === this.props.ctx.currentPlayer) {
             message = ' - MY TURN!';
         }
@@ -42,18 +36,20 @@ export class InnovationBoard extends React.Component {
             //         menu = renderList(topStackable.menuOptions, "Menu options", x => x, element => this.props.moves.ClickMenu(element));
             //     }
             // }
+                    menu = renderList(Array.of("yes", "no"), "Menu options", x => x, element => this.props.moves.ClickMenu(element));
+
             return (
                 <div>
                     <h1> Player {this.props.playerID} board</h1>
                     {message}
                     <h4>Resolving stack...</h4>
+                    {renderList(this.props.G.stack, "The Stack", x => x.name + "[player " + x.playerID + "]")}
                     {menu}
                     {renderCardList(this.props.G[this.props.playerID].hand, "My hand", element => this.props.moves.ClickCard(element.id))}
                     {renderCardList(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.ClickCard(element.id))}
                     {renderCardList(this.props.G[this.props.playerID].achievements, "My achievements")}
                     {renderCardList(this.props.G.achievements, "Unclaimed achievements", element => this.props.moves.ClickCard(element.id))}
                     {renderCardList(this.props.G[this.props.playerID].score, "My score", element => this.props.moves.ClickCard(element.id))}
-                    {renderList(this.props.G.stack, "The Stack", x => x.name + "[player " + x.playerID + "]")}
                     {renderList(this.props.G.log, "Log", x => x)}
                     <h4>Decks</h4>
                     <ul>{decks}</ul>
@@ -70,7 +66,6 @@ export class InnovationBoard extends React.Component {
                 {renderCardList(this.props.G[this.props.playerID].achievements, "My achievements")}
                 {renderCardList(this.props.G.achievements, "Unclaimed achievements", element => this.props.moves.AchieveAction(element.id))}
                 {renderCardList(this.props.G[this.props.playerID].score, "My score")}
-                {renderList(this.props.G.stack, "The Stack", x => x.name + "[player " + x.playerID + "]")}
                 {renderList(this.props.G.log, "Log", x => x)}
                 <h4>Decks</h4>
                 <ul>{decks}</ul>

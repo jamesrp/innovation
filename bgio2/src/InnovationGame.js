@@ -11,11 +11,14 @@ const functionsTable = {
         if (index === -1) {
             return INVALID_MOVE;
         }
+        let name = G[playerID].hand[index].name;
         G[playerID].score.push(G[playerID].hand[index]);
         G[playerID].hand.splice(index, 1);
+        G.log.push("Player " + playerID + " scores " + name + " from hand");
     },
     "mayDrawAThree": (G, playerID, msg) => {
         if (msg === "no") {
+            G.log.push("Player " + playerID + " declines to draw a 3");
             return;
         }
         if (msg === "yes") {
@@ -62,10 +65,6 @@ const stackablesTable = {
     }),
 }
 
-// TODO:
-// - Finish the stack pusher and unwinder.
-//
-
 function ClickCard(G, ctx, id) {
     let x = executeWithCard(G, ctx, G.stack.pop(), id);
     TryUnwindStack(G, ctx);
@@ -85,35 +84,16 @@ function TryUnwindStack(G, ctx) {
 }
 
 function executeBlind(G, ctx, stackable) {
-    let md = stackable.executeBlind + ': topAge = ' + topAge(G, stackable.playerID).toString();
-    console.log(md);
-    G.log.push(md);
     functionsTable[stackable.executeBlind](G, stackable.playerID);
 }
 
 function executeWithCard(G, ctx, stackable, cardID) {
-    let md = stackable.executeWithCard + ': ' + cardID;
-    console.log(md);
-    G.log.push(md);
     functionsTable[stackable.executeWithCard](G, stackable.playerID, cardID);
 }
 
 function executeWithMenu(G, ctx, stackable, msg) {
-    let md = stackable.executeWithMenu + ': ' + msg;
-    console.log(md);
-    G.log.push(md);
     functionsTable[stackable.executeWithMenu](G, stackable.playerID, msg);
 }
-
-// Stackable:
-let stackable = {
-    playerToMove: "0",  // or '' if nobody
-    // And one of:
-    menuOptions: Array(0),
-    cardOptions: Array(0),
-
-
-};
 
 export const Innovation = {
     name: 'innovation',
@@ -130,17 +110,14 @@ export const Innovation = {
     },
 
     phases: {
-        // TODO: can we get rid of the stage here and just do this?
-        //   order: TurnOrder.CUSTOM(['1', '3']),
-        // with moveLimit=1?
         startPhase: {
             moves: {MeldAction},
-            stages: {
-                myFirstStage: {
-                    moves: {MeldAction},
-                },
+            turn: {
+                moveLimit: 1,
             },
             start: true,
+            next: 'mainPhase',
+            endIf: (G, ctx) => (G.numDoneOpening === ctx.numPlayers),
         },
 
         mainPhase: {
@@ -164,15 +141,18 @@ export const Innovation = {
                 order: {
                     // Get the initial value of playOrderPos.
                     // This is called at the beginning of the phase.
-                    first: (G, ctx) => 0, // TODO: how to determine?
+                    first: (G, ctx) => {
+                        console.log("checking next player AT START of mainPhase");
+                        return parseInt(G.turnOrderStateMachine.leader);
+
+                    }, // TODO: how to determine?
 
                     // Get the next value of playOrderPos.
                     // This is called at the end of each turn.
                     // The phase ends if this returns undefined.
                     next: (G, ctx) => {
                         // seems to not be getting called?
-                        console.log("checking next player in mainPhase");
-                        console.log(parseInt(G.turnOrderStateMachine.leader));
+                        console.log("checking next player in mainPhase", parseInt(G.turnOrderStateMachine.leader));
                         return parseInt(G.turnOrderStateMachine.leader);
                     },
                 }
@@ -208,6 +188,7 @@ export const Innovation = {
 
 function playerPosFromStackable(G, ctx) {
     let stackable = G.stack[G.stack.length - 1];
+    console.log("playerPosFromStackable", stackable.playerToMove);
     return parseInt(stackable.playerToMove);
 }
 
@@ -220,7 +201,6 @@ function accountForActions(G, ctx) {
     if (G.turnOrderStateMachine.movesAsLeader == 2) {
         G.turnOrderStateMachine.leader = nextPlayer(G.turnOrderStateMachine.leader, ctx.numPlayers);
         G.turnOrderStateMachine.movesAsLeader = 0;
-        G.turnOrder = Array.of(G.turnOrderStateMachine.leader);
     }
 }
 
@@ -231,7 +211,6 @@ function DrawAction(G, ctx) {
 
 function drawNormal(G, playerID) {
     let ageToDraw = topAge(G, playerID);
-    console.log(ageToDraw);
     drawAux(G, playerID, ageToDraw);
 }
 
@@ -243,18 +222,15 @@ function drawMultiple(G, playerID, age, num) {
 
 // TODO: want to use typescript... ageToDraw is an int.
 function drawAux(G, playerID, ageToDraw) {
-    console.log('drawAux');
     // TODO: handle drawing an 11.
     while (true) {
-        console.log('G.decks keys:');
-        console.log(Object.keys(G.decks));
-
         if (G.decks[ageToDraw].length === 0) {
             ageToDraw += 1;
         } else {
             break;
         }
     }
+    G.log.push("Player " + playerID + " draws a " + ageToDraw.toString());
     G[playerID].hand.push(G.decks[ageToDraw].pop());
 }
 
@@ -264,12 +240,10 @@ function drawAux(G, playerID, ageToDraw) {
 // but not sure if it matters.
 export function topAge(G, playerID) {
     let topAges = G[playerID].board.map(element => element.age);
-    console.log(topAges);
     let age = 1;
     if (topAges.length !== 0) {
         age = Math.max(...topAges);
     }
-    console.log(age);
     return age;
 }
 
@@ -286,11 +260,13 @@ function MeldAction(G, ctx, id) {
     if (index === -1) {
         return INVALID_MOVE;
     }
+    let name = G[ctx.playerID].hand[index].name;
     G[ctx.playerID].board.push(G[ctx.playerID].hand[index]);
     G[ctx.playerID].hand.splice(index, 1);
     if (ctx.phase === 'startPhase') {
         openingPhaseBookkeeping(G, ctx);
     } else {
+        G.log.push("Player " + ctx.playerID + " melds " + name);
         accountForActions(G, ctx);
     }
 }
@@ -304,6 +280,7 @@ function AchieveAction(G, ctx, id) {
     if (!isEligible(G, ctx.playerID, achievement.age)) {
         return INVALID_MOVE;
     }
+    G.log.push("Player " + ctx.playerID + " achieves " + G.achievements[index].name);
     G[ctx.playerID].achievements.push(G.achievements[index]);
     G.achievements.splice(index, 1);
     accountForActions(G, ctx);
@@ -321,6 +298,8 @@ function DogmaAction(G, ctx, id) {
         return INVALID_MOVE;
     }
     let card = G[ctx.playerID].board[index];
+    G.log.push("Player " + ctx.playerID + " activates " + card.name);
+
     // TODO: for now we always share; need to actually check symbols.
     G.stack.push(stackablesTable["shareDraw"](G, ctx.playerID));
     card.dogmasFunction.forEach(dogmaName => G.stack.push(stackablesTable[dogmaName](G, ctx.playerID)));
@@ -344,9 +323,7 @@ function openingPhaseBookkeeping(G, ctx) {
             }
             return 0;
         });
-        G.leader = players[0];
-        ctx.events.setPhase('mainPhase');
-        ctx.events.endTurn({next: G.leader});
+        G.turnOrderStateMachine.leader = players[0];
     }
 }
 
@@ -387,8 +364,6 @@ function mySetup(ctx) {
             }
         }
     }
-    // TODO: this seems broken?
-    ctx.events.setActivePlayers({all: 'myFirstStage', moveLimit: 1});
     return G;
 }
 
