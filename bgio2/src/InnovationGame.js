@@ -1,4 +1,5 @@
 import {INVALID_MOVE, TurnOrder} from 'boardgame.io/core';
+import {generateDecks, stackablesTable} from './InnovationData';
 
 const acceleratedSetup = true; // Give each player a bunch of stuff to speed up debugging.
 
@@ -29,70 +30,25 @@ const functionsTable = {
     },
 };
 
-const stackablesTable = {
-    "wheel": (G, playerID) => ({
-        name: "wheel",
-        playerToMove: "",
-        executeBlind: "wheel",
-        playerID: playerID,
-    }),
-    "writing": (G, playerID) => ({
-        name: "writing",
-        playerToMove: "",
-        executeBlind: "writing",
-        playerID: playerID,
-    }),
-    "shareDraw": (G, playerID) => ({
-        name: "shareDraw",
-        playerToMove: "",
-        executeBlind: "shareDraw",
-        playerID: playerID,
-    }),
-    "scoreOneFromHand": (G, playerID) => ({
-        name: "scoreOneFromHand",
-        playerToMove: playerID,
-        executeWithCard: "scoreOneFromHand",
-        cardOptions: Array(0), // TODO: fill out with player's hand.
-        // TODO: if player has no hand make it a noop.
-        playerID: playerID,
-    }),
-    "mayDrawAThree": (G, playerID) => ({
-        name: "mayDrawAThree",
-        playerToMove: playerID,
-        executeWithMenu: "mayDrawAThree",
-        menuOptions: Array.of("yes", "no"),
-        playerID: playerID,
-    }),
-}
-
 function ClickCard(G, ctx, id) {
-    let x = executeWithCard(G, ctx, G.stack.pop(), id);
+    let stackable = G.stack.pop();
+    let x = functionsTable[stackable.executeWithCard](G, stackable.playerID, id);
     TryUnwindStack(G, ctx);
     return x;
 }
 
 function ClickMenu(G, ctx, msg) {
-    let x = executeWithMenu(G, ctx, G.stack.pop(), msg);
+    let stackable = G.stack.pop();
+    let x = functionsTable[stackable.executeWithMenu](G, stackable.playerID, msg);
     TryUnwindStack(G, ctx);
     return x;
 }
 
 function TryUnwindStack(G, ctx) {
     while (G.stack.length !== 0 && G.stack[G.stack.length - 1].playerToMove === '') {
-        executeBlind(G, ctx, G.stack.pop());
+        let stackable = G.stack.pop();
+        functionsTable[stackable.executeBlind](G, stackable.playerID);
     }
-}
-
-function executeBlind(G, ctx, stackable) {
-    functionsTable[stackable.executeBlind](G, stackable.playerID);
-}
-
-function executeWithCard(G, ctx, stackable, cardID) {
-    functionsTable[stackable.executeWithCard](G, stackable.playerID, cardID);
-}
-
-function executeWithMenu(G, ctx, stackable, msg) {
-    functionsTable[stackable.executeWithMenu](G, stackable.playerID, msg);
 }
 
 export const Innovation = {
@@ -100,14 +56,6 @@ export const Innovation = {
     minPlayers: 2,
     maxPlayers: 4,
     setup: mySetup,
-
-    turn: {
-        moveLimit: 1,
-    },
-
-    moves: {
-        MeldAction
-    },
 
     phases: {
         startPhase: {
@@ -124,7 +72,7 @@ export const Innovation = {
             moves: {
                 MeldAction, AchieveAction,
                 DogmaAction: {
-                    // Crashes otherwise by trying to access deck locally.
+                    // May crash since we don't know what the dogma will do.
                     move: DogmaAction,
                     client: false,
                 },
@@ -139,49 +87,34 @@ export const Innovation = {
             turn: {
                 moveLimit: 1,
                 order: {
-                    // Get the initial value of playOrderPos.
-                    // This is called at the beginning of the phase.
-                    first: (G, ctx) => {
-                        console.log("checking next player AT START of mainPhase");
-                        return parseInt(G.turnOrderStateMachine.leader);
-
-                    }, // TODO: how to determine?
-
-                    // Get the next value of playOrderPos.
-                    // This is called at the end of each turn.
-                    // The phase ends if this returns undefined.
-                    next: (G, ctx) => {
-                        // seems to not be getting called?
-                        console.log("checking next player in mainPhase", parseInt(G.turnOrderStateMachine.leader));
-                        return parseInt(G.turnOrderStateMachine.leader);
-                    },
+                    first: (G, ctx) => parseInt(G.turnOrderStateMachine.leader),
+                    next: (G, ctx) => parseInt(G.turnOrderStateMachine.leader),
                 }
             }
         },
-        // After each Dogma() call, call TryUnwindStack().
-        // Also call it after each ClickMenu/ClickCard
+
         resolveStack: {
-            moves: {ClickMenu, ClickCard},
+            moves: {
+                // Both of these need the server since we don't know
+                // what effect they will end up executing.
+                ClickMenu: {
+                    move: ClickMenu,
+                    client: false,
+                }, ClickCard: {
+                    move: ClickCard,
+                    client: false,
+                },
+            },
             endIf: G => (G.stack.length === 0),
             next: 'mainPhase',
             turn: {
                 moveLimit: 1,
                 order: {
-                    // Get the initial value of playOrderPos.
-                    // This is called at the beginning of the phase.
                     first: playerPosFromStackable,
-
-                    // Get the next value of playOrderPos.
-                    // This is called at the end of each turn.
-                    // The phase ends if this returns undefined.
                     next: playerPosFromStackable,
                 }
             }
         },
-        // phase = main, brodo clicks Math
-        // BOT - sharedraw - brodo math - jpfeiff  math
-        // framework notices stack nonempty and sets phase = resolve
-        // TODO: jpfeiff becomes current player?
     },
 
 };
@@ -222,13 +155,15 @@ function drawMultiple(G, playerID, age, num) {
 
 // TODO: want to use typescript... ageToDraw is an int.
 function drawAux(G, playerID, ageToDraw) {
-    // TODO: handle drawing an 11.
-    while (true) {
+    while (ageToDraw <= 10) {
         if (G.decks[ageToDraw].length === 0) {
             ageToDraw += 1;
         } else {
             break;
         }
+    }
+    if (ageToDraw >= 11) {
+        G.drewEleven = true;
     }
     G.log.push("Player " + playerID + " draws a " + ageToDraw.toString());
     G[playerID].hand.push(G.decks[ageToDraw].pop());
@@ -340,6 +275,7 @@ function mySetup(ctx) {
         stack: Array(0),
         achievements: Array(0),
         numDoneOpening: 0,
+        drewEleven: false,
     };
     for (let i = 0; i < ctx.numPlayers; i++) {
         let playerData = {
@@ -365,71 +301,6 @@ function mySetup(ctx) {
         }
     }
     return G;
-}
-
-function generateDecks(ctx) {
-    let decks = {};
-    for (let i = 1; i < 11; i++) {
-        decks[i] = Array(0);
-    }
-    loadCards(ctx).forEach(element => {
-        decks[element.age].push(element)
-    });
-    for (let i = 1; i < 11; i++) {
-        decks[i] = ctx.random.Shuffle(decks[i]);
-    }
-    return decks;
-}
-
-function loadCards(ctx) {
-    // TODO: unstub.
-    let multiplicity = 3;
-    let cards = Array(0);
-    for (let i = 0; i < multiplicity; i++) {
-        for (let age = 1; age < 11; age++) {
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "green",
-                age: age,
-                name: "The Wheel - age " + age.toString() + " - copy " + i.toString(),
-                dogmasEnglish: ["Draw two 1s."],
-                dogmasFunction: ["wheel"],
-                mainSymbol: "castle",
-                symbols: ["hex", "", "", "castle", "castle", "castle"],
-            });
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "blue",
-                age: age,
-                name: "Writing - age " + age.toString() + " - copy " + i.toString(),
-                dogmasEnglish: ["Draw a 2."],
-                dogmasFunction: ["writing"],
-                mainSymbol: "bulb",
-                symbols: ["hex", "", "", "bulb", "bulb", "crown"],
-            });
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "purple",
-                age: age,
-                name: "Mostly Philosophy - age " + age.toString() + " - copy " + i.toString(),
-                dogmasEnglish: ["Score a card from your hand."],
-                dogmasFunction: ["scoreOneFromHand"],
-                mainSymbol: "bulb",
-                symbols: ["hex", "", "", "bulb", "bulb", "bulb"],
-            });
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "yellow",
-                age: age,
-                name: "MegaWriting - age " + age.toString() + " - copy " + i.toString(),
-                dogmasEnglish: ["You may draw a 3."],
-                dogmasFunction: ["mayDrawAThree"],
-                mainSymbol: "leaf",
-                symbols: ["leaf", "", "", "hex", "leaf", "bulb"],
-            });
-        }
-    }
-    return cards;
 }
 
 function nextPlayer(player, numPlayers) {
