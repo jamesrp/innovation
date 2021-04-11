@@ -1,6 +1,6 @@
 import React from 'react';
 import {colors, computePoints, canPlay} from './LostCitiesGame';
-
+import {boardStyle, tableStyle, cellStyleSide, cellStyleClickable, cellStyle, handStyle, buttonStyle} from './styles';
 
 export class LostCitiesBoard extends React.Component {
     render() {
@@ -103,77 +103,3 @@ function renderPile(pile) {
     return pile.flatMap(card => card.number).join(",");
 }
 
-const colorMapBackground = {
-    "white": "#dedeeef",
-    "green": "#b5e7a0",
-    "red": "#eea29a",
-    "blue": "#92a8d1",
-    "yellow": "#ffef96",
-    "brown": "#dac292",
-    "clear": "#cccccc",
-}
-
-function cellStyle(color) {
-    return {
-        border: '1px solid #555',
-        width: '100px',
-        height: '50px',
-        lineHeight: '50px',
-        textAlign: 'center',
-        "background-color": colorMapBackground[color],
-    };
-}
-
-function cellStyleClickable(color, clickable) {
-    let s = cellStyle(color);
-    if (clickable) {
-        s.border = '3px solid #555';
-    }
-    return s;
-}
-
-function cellStyleSide(color, clickable) {
-    let s = cellStyle(color);
-    s.width = '80px';
-    if (clickable) {
-        s.border = '3px solid #555';
-    }
-    return s;
-}
-
-function handStyle(color) {
-    return {
-        border: '1px solid #555',
-        width: '150px',
-        height: '25px',
-        lineHeight: '25px',
-        textAlign: 'center',
-        "background-color": colorMapBackground[color],
-    };
-}
-
-function buttonStyle(clickable) {
-    let border = '1px solid #555';
-    if (clickable) {
-        border = '3px solid #555';
-    }
-    return {
-        border: border,
-        width: '120px',
-        height: '25px',
-        lineHeight: '25px',
-        textAlign: 'center',
-    };
-}
-
-function boardStyle() {
-    return {
-        textAlign: 'center',
-    };
-}
-
-function tableStyle() {
-    return {
-        margin: 'auto',
-    };
-}

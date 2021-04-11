@@ -5,6 +5,7 @@ import {computePoints} from "./LostCitiesGame";
 const acceleratedSetup = true; // Give each player a bunch of stuff to speed up debugging.
 
 export const colors = Array.of("yellow", "blue", "purple", "red", "green");
+export const ages = Array.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
 const functionsTable = {
     "wheel": (G, playerID) => drawMultiple(G, playerID, 1, 2),
@@ -339,6 +340,6 @@ function topCards(board) {
         if (board[color].length === 0) {
             return [];
         }
-        return [board[color][board[color].length-1]];
+        return [board[color][board[color].length - 1]];
     });
 }
