@@ -53,7 +53,7 @@ function loadCards(ctx) {
                 age: age,
                 name: "MegaWriting - age " + age.toString() + " - copy " + i.toString(),
                 dogmasEnglish: ["You may draw a 3."],
-                dogmasFunction: ["mayDrawAThree"],
+                dogmasFunction: ["mayDrawATen"],
                 mainSymbol: "leaf",
                 symbols: ["leaf", "", "", "hex", "leaf", "bulb"],
             });
@@ -89,10 +89,10 @@ export const stackablesTable = {
         // TODO: if player has no hand make it a noop.
         playerID: playerID,
     }),
-    "mayDrawAThree": (G, playerID) => ({
-        name: "mayDrawAThree",
+    "mayDrawATen": (G, playerID) => ({
+        name: "mayDrawATen",
         playerToMove: playerID,
-        executeWithMenu: "mayDrawAThree",
+        executeWithMenu: "mayDrawATen",
         menuOptions: Array.of("yes", "no"),
         playerID: playerID,
     }),

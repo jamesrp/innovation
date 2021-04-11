@@ -1,5 +1,6 @@
 import {INVALID_MOVE, TurnOrder} from 'boardgame.io/core';
 import {generateDecks, stackablesTable} from './InnovationData';
+import {computePoints} from "./LostCitiesGame";
 
 const acceleratedSetup = true; // Give each player a bunch of stuff to speed up debugging.
 
@@ -17,13 +18,13 @@ const functionsTable = {
         G[playerID].hand.splice(index, 1);
         G.log.push("Player " + playerID + " scores " + name + " from hand");
     },
-    "mayDrawAThree": (G, playerID, msg) => {
+    "mayDrawATen": (G, playerID, msg) => {
         if (msg === "no") {
             G.log.push("Player " + playerID + " declines to draw a 3");
             return;
         }
         if (msg === "yes") {
-            drawMultiple(G, playerID, 3, 1)
+            drawMultiple(G, playerID, 10, 1)
             return;
         }
         return INVALID_MOVE;
@@ -117,7 +118,30 @@ export const Innovation = {
         },
     },
 
+    endIf: computeVictory,
 };
+
+// TODO: we need to check this during each stackable etc.
+// Technically in the middle of every effect.
+// Let's just check after turns for now and revisit later.
+function computeVictory(G, ctx) {
+    let players = ctx.playOrder.slice();
+    let winningPlayers = Array(0);
+    if (G.drewEleven) {
+        // compute highest score.
+        let scores = players.map(p => getScore(G, p));
+        let highestScore = Math.max(...scores);
+        winningPlayers = players.filter(p => (getScore(G, p) === highestScore));
+    } else {
+        winningPlayers = players.filter(p => (G[p].achievements.length >= G.achievementsToWin));
+    }
+    if (winningPlayers.length >= 1) {
+        if (winningPlayers.length >= 2) {
+            return {draw: true};
+        }
+        return {winner: winningPlayers[0]};
+    }
+}
 
 function playerPosFromStackable(G, ctx) {
     let stackable = G.stack[G.stack.length - 1];
@@ -125,10 +149,7 @@ function playerPosFromStackable(G, ctx) {
     return parseInt(stackable.playerToMove);
 }
 
-// accountForActions mutates the actions state machine
-// after a player uses a main-phase action.
-//
-function accountForActions(G, ctx) {
+function recordMainPhaseAction(G, ctx) {
     // TODO: we don't handle the initial turns where you only get 1 action.
     G.turnOrderStateMachine.movesAsLeader += 1;
     if (G.turnOrderStateMachine.movesAsLeader == 2) {
@@ -139,7 +160,7 @@ function accountForActions(G, ctx) {
 
 function DrawAction(G, ctx) {
     drawNormal(G, ctx.playerID)
-    accountForActions(G, ctx);
+    recordMainPhaseAction(G, ctx);
 }
 
 function drawNormal(G, playerID) {
@@ -155,27 +176,22 @@ function drawMultiple(G, playerID, age, num) {
 
 // TODO: want to use typescript... ageToDraw is an int.
 function drawAux(G, playerID, ageToDraw) {
-    while (ageToDraw <= 10) {
-        if (G.decks[ageToDraw].length === 0) {
-            ageToDraw += 1;
-        } else {
-            break;
-        }
-    }
-    if (ageToDraw >= 11) {
+    if (ageToDraw <= 0) {
+        drawAux(G, playerID, 1);
+    } else if (ageToDraw > 10) {
         G.drewEleven = true;
+    } else if (G.decks[ageToDraw].length === 0) {
+        drawAux(G, playerID, ageToDraw + 1);
+    } else {
+        G.log.push("Player " + playerID + " draws a " + ageToDraw.toString());
+        G[playerID].hand.push(G.decks[ageToDraw].pop());
     }
-    G.log.push("Player " + playerID + " draws a " + ageToDraw.toString());
-    G[playerID].hand.push(G.decks[ageToDraw].pop());
 }
 
 // TODO: topAges gets all cards on board. Need to implement piles.
-// TODO: rounding up to 1 in this function for now.
-// Technically we are supposed to return 0 for an empty board,
-// but not sure if it matters.
 export function topAge(G, playerID) {
     let topAges = G[playerID].board.map(element => element.age);
-    let age = 1;
+    let age = 0;
     if (topAges.length !== 0) {
         age = Math.max(...topAges);
     }
@@ -202,7 +218,7 @@ function MeldAction(G, ctx, id) {
         openingPhaseBookkeeping(G, ctx);
     } else {
         G.log.push("Player " + ctx.playerID + " melds " + name);
-        accountForActions(G, ctx);
+        recordMainPhaseAction(G, ctx);
     }
 }
 
@@ -218,7 +234,7 @@ function AchieveAction(G, ctx, id) {
     G.log.push("Player " + ctx.playerID + " achieves " + G.achievements[index].name);
     G[ctx.playerID].achievements.push(G.achievements[index]);
     G.achievements.splice(index, 1);
-    accountForActions(G, ctx);
+    recordMainPhaseAction(G, ctx);
 }
 
 function isEligible(G, playerID, achievementAge) {
@@ -240,7 +256,7 @@ function DogmaAction(G, ctx, id) {
     card.dogmasFunction.forEach(dogmaName => G.stack.push(stackablesTable[dogmaName](G, ctx.playerID)));
 
     TryUnwindStack(G, ctx);
-    accountForActions(G, ctx);
+    recordMainPhaseAction(G, ctx);
 }
 
 // TODO: does this work?
@@ -274,6 +290,7 @@ function mySetup(ctx) {
         },
         stack: Array(0),
         achievements: Array(0),
+        achievementsToWin: 8 - ctx.numPlayers, // TODO: different for expansions.
         numDoneOpening: 0,
         drewEleven: false,
     };
