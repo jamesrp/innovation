@@ -1,6 +1,6 @@
 import React from 'react';
 
-// import {topAge} from './InnovationGame';
+import {topAge, colors} from './InnovationGame';
 
 export class InnovationBoard extends React.Component {
     render() {
@@ -25,6 +25,11 @@ export class InnovationBoard extends React.Component {
             </li>
         ))
 
+        let opp = "0";
+        if (this.props.playerID === "0") {
+            opp = "1";
+        }
+
         // Depending on the phase, make different things clickable.
         // TODO: need to display other player's board etc.
         if (this.props.ctx.phase === "resolveStack") {
@@ -46,7 +51,8 @@ export class InnovationBoard extends React.Component {
                     {renderList(this.props.G.stack, "The Stack", x => x.name + "[player " + x.playerID + "]")}
                     {menu}
                     {renderCardList(this.props.G[this.props.playerID].hand, "My hand", element => this.props.moves.ClickCard(element.id))}
-                    {renderCardList(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.ClickCard(element.id))}
+                    {renderBoard(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.ClickCard(element.id))}
+                    {renderBoard(this.props.G[opp].board, "Opp board", element => this.props.moves.ClickCard(element.id))}
                     {renderCardList(this.props.G[this.props.playerID].achievements, "My achievements")}
                     {renderCardList(this.props.G.achievements, "Unclaimed achievements", element => this.props.moves.ClickCard(element.id))}
                     {renderCardList(this.props.G[this.props.playerID].score, "My score", element => this.props.moves.ClickCard(element.id))}
@@ -62,7 +68,8 @@ export class InnovationBoard extends React.Component {
                 {message}
                 <h4 onClick={() => this.props.moves.DrawAction()}>Click to draw!</h4>
                 {renderCardList(this.props.G[this.props.playerID].hand, "My hand", element => this.props.moves.MeldAction(element.id))}
-                {renderCardList(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.DogmaAction(element.id))}
+                {renderBoard(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.DogmaAction(element.id))}
+                {renderBoard(this.props.G[opp].board, "Opp board")}
                 {renderCardList(this.props.G[this.props.playerID].achievements, "My achievements")}
                 {renderCardList(this.props.G.achievements, "Unclaimed achievements", element => this.props.moves.AchieveAction(element.id))}
                 {renderCardList(this.props.G[this.props.playerID].score, "My score")}
@@ -101,3 +108,15 @@ function renderList(arr, name, nameFn, onClickFn) {
     </div>
 }
 
+function renderBoard(board, msg, onClickFn) {
+    return <div>
+        <p>{msg}</p>
+        <ul>
+            <li>{renderCardList(board['green'], 'green', onClickFn)}</li>
+            <li>{renderCardList(board['yellow'], 'yellow', onClickFn)}</li>
+            <li>{renderCardList(board['red'], 'red', onClickFn)}</li>
+            <li>{renderCardList(board['blue'], 'blue', onClickFn)}</li>
+            <li>{renderCardList(board['purple'], 'purple', onClickFn)}</li>
+        </ul>
+    </div>
+}

@@ -4,6 +4,8 @@ import {computePoints} from "./LostCitiesGame";
 
 const acceleratedSetup = true; // Give each player a bunch of stuff to speed up debugging.
 
+export const colors = Array.of("yellow", "blue", "purple", "red", "green");
+
 const functionsTable = {
     "wheel": (G, playerID) => drawMultiple(G, playerID, 1, 2),
     "writing": (G, playerID) => drawMultiple(G, playerID, 2, 1),
@@ -190,7 +192,7 @@ function drawAux(G, playerID, ageToDraw) {
 
 // TODO: topAges gets all cards on board. Need to implement piles.
 export function topAge(G, playerID) {
-    let topAges = G[playerID].board.map(element => element.age);
+    let topAges = topCards(G[playerID].board).map(element => element.age);
     let age = 0;
     if (topAges.length !== 0) {
         age = Math.max(...topAges);
@@ -212,7 +214,8 @@ function MeldAction(G, ctx, id) {
         return INVALID_MOVE;
     }
     let name = G[ctx.playerID].hand[index].name;
-    G[ctx.playerID].board.push(G[ctx.playerID].hand[index]);
+    let color = G[ctx.playerID].hand[index].color;
+    G[ctx.playerID].board[color].push(G[ctx.playerID].hand[index]);
     G[ctx.playerID].hand.splice(index, 1);
     if (ctx.phase === 'startPhase') {
         openingPhaseBookkeeping(G, ctx);
@@ -244,11 +247,12 @@ function isEligible(G, playerID, achievementAge) {
 
 function DogmaAction(G, ctx, id) {
     // TODO: need to check if the card is a top card of the board, not just onboard.
-    let index = G[ctx.playerID].board.findIndex(element => (element.id === id));
+    let candidates = topCards(G[ctx.playerID].board);
+    let index = candidates.findIndex(element => (element.id === id));
     if (index === -1) {
         return INVALID_MOVE;
     }
-    let card = G[ctx.playerID].board[index];
+    let card = candidates[index];
     G.log.push("Player " + ctx.playerID + " activates " + card.name);
 
     // TODO: for now we always share; need to actually check symbols.
@@ -265,8 +269,8 @@ function openingPhaseBookkeeping(G, ctx) {
     if (G.numDoneOpening === ctx.numPlayers) {
         let players = ctx.playOrder.slice();
         players.sort((a, b) => {
-            let nameA = G[a].board[0].name;
-            let nameB = G[b].board[0].name;
+            let nameA = topCards(G[a].board)[0].name;
+            let nameB = topCards(G[b].board)[0].name;
             if (nameA < nameB) {
                 return -1;
             } else if (nameA > nameB) {
@@ -299,7 +303,13 @@ function mySetup(ctx) {
             hand: Array(0),
             score: Array(0),
             achievements: Array(0),
-            board: Array(0),
+            board: {
+                "green": Array(0),
+                "yellow": Array(0),
+                "purple": Array(0),
+                "red": Array(0),
+                "blue": Array(0),
+            },
         };
         for (let j = 0; j < 2; j++) {
             playerData.hand.push(G.decks[1].pop());
@@ -322,4 +332,13 @@ function mySetup(ctx) {
 
 function nextPlayer(player, numPlayers) {
     return ((parseInt(player, 10) + 1) % numPlayers).toString();
+}
+
+function topCards(board) {
+    return colors.flatMap(color => {
+        if (board[color].length === 0) {
+            return [];
+        }
+        return [board[color][board[color].length-1]];
+    });
 }
