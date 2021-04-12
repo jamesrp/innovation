@@ -38,12 +38,9 @@ export class InnovationBoard extends React.Component {
         }
         if (this.props.ctx.phase === "resolveStack") {
             clickHandlers = {
-                myHand:this.props.moves.ClickCard,
-                oppHand:this.props.moves.ClickCard,
+                myHand: this.props.moves.ClickCard,
                 myBoard: this.props.moves.ClickCard,
-                oppBoard: this.props.moves.ClickCard,
                 myScore: this.props.moves.ClickCard,
-                oppScore: this.props.moves.ClickCard,
             }
         }
 
@@ -54,8 +51,8 @@ export class InnovationBoard extends React.Component {
         tbody.push(renderBoard(this.props.G[opp].board, "Opp Board"));
         tbody.push(renderFacedownZone(this.props.G[opp].score, "Opp score"));
         tbody.push(renderFacedownZone(this.props.G[opp].achievements, "Opp Achievements"));
-        tbody.push(renderFacedownZone(this.props.G.achievements, "Available Achievements"));
-         let decksA = Array.of(1, 2, 3, 4, 5).flatMap(age => <td
+        tbody.push(renderFacedownZone(this.props.G.achievements, "Available Achievements", clickHandlers.achievements));
+        let decksA = Array.of(1, 2, 3, 4, 5).flatMap(age => <td
             style={facedownCardStyle(this.props.G.decks[age].length === 0 ? 'grey' : 'brown')}> Age {age} [{this.props.G.decks[age].length}]</td>);
         let decksB = Array.of(6, 7, 8, 9, 10).flatMap(age => <td
             style={facedownCardStyle(this.props.G.decks[age].length === 0 ? 'grey' : 'brown')}> Age {age} [{this.props.G.decks[age].length}]</td>);
@@ -65,15 +62,14 @@ export class InnovationBoard extends React.Component {
         tbody.push(<tr>
             <td style={cellStyleSide('clear', false)}>Decks</td>
             {decksB}</tr>);
-        tbody.push(renderFacedownZone(this.props.G[this.props.playerID].score, "My score"));
+        tbody.push(renderFacedownZone(this.props.G[this.props.playerID].score, "My score", clickHandlers.myScore));
         tbody.push(renderFacedownZone(this.props.G[this.props.playerID].achievements, "My Achievements"));
-        tbody.push(renderBoard(this.props.G[this.props.playerID].board, "My Board"));
+        tbody.push(renderBoard(this.props.G[this.props.playerID].board, "My Board", clickHandlers.myBoard));
 
         // TODO: my hand.
 
-        // Depending on the phase, make different things clickable.
+        let msg1 = <h4 onClick={() => this.props.moves.DrawAction()}>Click to draw!</h4>;
         if (this.props.ctx.phase === "resolveStack") {
-            let menu = '';
             // TODO bug - shouldn't stack always have something in it if we have it?
             // if (this.props.G.stack.length !== 0) {
             //     let topStackable = this.props.G.stack[this.props.G.stack - 1];
@@ -81,45 +77,21 @@ export class InnovationBoard extends React.Component {
             //         menu = renderList(topStackable.menuOptions, "Menu options", x => x, element => this.props.moves.ClickMenu(element));
             //     }
             // }
-            menu = renderList(Array.of("yes", "no"), "Menu options", x => x, element => this.props.moves.ClickMenu(element));
-
-            return (
-                <div>
-                    <h3> Player {this.props.playerID} board {message}</h3>
-                    <h4>Resolving stack...</h4>
-                    {renderList(this.props.G.stack, "The Stack", x => x.name + "[player " + x.playerID + "]")}
-                    {menu}
-                    <table style={tableStyle()}>
-                        <tbody>{tbody}</tbody>
-                    </table>
-                    {renderCardList(this.props.G[this.props.playerID].hand, "My hand", element => this.props.moves.ClickCard(element.id))}
-                    {renderTableau(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.ClickCard(element.id))}
-                    {renderTableau(this.props.G[opp].board, "Opp board", element => this.props.moves.ClickCard(element.id))}
-                    {renderCardList(this.props.G[this.props.playerID].achievements, "My achievements")}
-                    {renderCardList(this.props.G.achievements, "Unclaimed achievements", element => this.props.moves.ClickCard(element.id))}
-                    {renderCardList(this.props.G[this.props.playerID].score, "My score", element => this.props.moves.ClickCard(element.id))}
-                    {renderList(this.props.G.log, "Log", x => x)}
-                    <h4>Decks</h4>
-                    <ul>{decks}</ul>
-                </div>
-            );
+            msg1 = <div>
+                <h4>Resolving stack...</h4>
+                {renderList(this.props.G.stack, "The Stack", x => x.name + "[player " + x.playerID + "]")}
+                {renderList(Array.of("yes", "no"), "Menu options", x => x, element => this.props.moves.ClickMenu(element))}
+            </div>;
         }
         return (
             <div>
                 <h3> Player {this.props.playerID} board {message}</h3>
-                <h4 onClick={() => this.props.moves.DrawAction()}>Click to draw!</h4>
+                {msg1}
                 <table style={tableStyle()}>
                     <tbody>{tbody}</tbody>
                 </table>
-                {renderCardList(this.props.G[this.props.playerID].hand, "My hand", element => this.props.moves.MeldAction(element.id))}
-                {renderTableau(this.props.G[this.props.playerID].board, "My board", element => this.props.moves.DogmaAction(element.id))}
-                {renderTableau(this.props.G[opp].board, "Opp board")}
-                {renderCardList(this.props.G[this.props.playerID].achievements, "My achievements")}
-                {renderCardList(this.props.G.achievements, "Unclaimed achievements", element => this.props.moves.AchieveAction(element.id))}
-                {renderCardList(this.props.G[this.props.playerID].score, "My score")}
+                {renderCardList(this.props.G[this.props.playerID].hand, "My hand", element => clickHandlers.myHand(element.id))}
                 {renderList(this.props.G.log, "Log", x => x)}
-                <h4>Decks</h4>
-                <ul>{decks}</ul>
             </div>
         );
     }
@@ -165,8 +137,13 @@ function renderTableau(board, msg, onClickFn) {
     </div>
 }
 
-function renderFacedownZone(zone, msg) {
-    let content = zone.flatMap(c => <td style={facedownCardStyle('brown')}>{c.age}</td>);
+function renderFacedownZone(zone, msg, onClick) {
+    let content = zone.flatMap(c => {
+        if (onClick === undefined || onClick === null) {
+            return <td style={facedownCardStyle('brown')}>{c.age}</td>;
+        }
+        return <td onClick={() => onClick(c.id)} style={facedownCardStyle('brown')}>{c.age}</td>;
+    });
     return <tr>
         <td style={cellStyleSide('clear', false)}>{msg}</td>
         <td colspan="5">
@@ -180,7 +157,7 @@ function renderFacedownZone(zone, msg) {
 }
 
 // TODO: rudimentary board - TBD how to represent a top card + icons succinctly.
-function renderBoard(board, msg) {
+function renderBoard(board, msg, onClick) {
     let output = colors.flatMap(c => {
         let pile = board[c];
         if (pile.length === 0) {
@@ -191,7 +168,10 @@ function renderBoard(board, msg) {
         if (pile.length > 1) {
             extra = ' [+' + (pile.length - 1).toString() + ']';
         }
-        return <td style={cellStyleInnovation(c)}>{top.name}{extra}</td>;
+        if (onClick === undefined || onClick === null) {
+            return <td style={cellStyleInnovation(c)}>{top.name}{extra}</td>;
+        }
+        return <td onClick={() => onClick(top.id)} style={cellStyleInnovation(c)}>{top.name}{extra}</td>;
     })
     return <tr>
         <td style={cellStyleSide('clear', false)}>{msg}</td>
