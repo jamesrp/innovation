@@ -2,11 +2,20 @@ import {Client, Lobby} from 'boardgame.io/react';
 import {SocketIO} from 'boardgame.io/multiplayer'
 import {LostCities} from './LostCitiesGame';
 import {LostCitiesBoard} from './LostCitiesBoard';
+import {Elements} from './ElementsGame';
+import {ElementsBoard} from './ElementsBoard';
 import {Innovation} from './InnovationGame';
 import {InnovationBoard} from './InnovationBoard';
 import {GloryToRome} from './GloryToRomeGame';
 import {GloryToRomeBoard} from './GloryToRomeBoard';
 
+const ElementsClient = Client({
+    game: Elements,
+    board: ElementsBoard,
+    multiplayer: SocketIO({server: 'localhost:8000'}),
+    numPlayers: 2,
+    debug: false,
+});
 
 const LostCitiesClient = Client({
     game: LostCities,
@@ -63,6 +72,8 @@ function MakeClient(game, match, player) {
         myClient = <InnovationClient playerID={player} matchID={match}/>;
     } else if (game === "glorytorome") {
         myClient = <GloryToRomeClient playerID={player} matchID={match}/>;
+    }  else if (game === "elements") {
+        myClient = <ElementsClient playerID={player} matchID={match}/>;
     }
     return myClient;
 }
@@ -85,6 +96,8 @@ function RouteRequest() {
             game = "innovation";
         } else if (game === "g" || game === "gtr") {
             game = "glorytorome";
+        }  else if (game === "e") {
+            game = "elements";
         }
         let match = game + "/" + pathArray[3];
         let player = pathArray[4];

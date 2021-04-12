@@ -1,10 +1,11 @@
 const {Server} = require('boardgame.io/server');
+const {Elements} = require('./ElementsGame');
 const {LostCities} = require('./LostCitiesGame');
 const {Innovation} = require('./InnovationGame');
 const {GloryToRome} = require('./GloryToRomeGame');
 
 const server = Server({
-    games: [GloryToRome, LostCities, Innovation]
+    games: [Elements, GloryToRome, LostCities, Innovation]
 });
 
 const lobbyConfig = {

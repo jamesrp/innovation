@@ -4,7 +4,7 @@ export const colorMapBackground = {
     "red": "#eea29a",
     "blue": "#92a8d1",
     "yellow": "#ffef96",
-    "purple":"#b19CD9",
+    "purple": "#b19CD9",
     "brown": "#dac292",
     "clear": "#cccccc",
 }
@@ -31,7 +31,18 @@ export function cellStyle(color) {
     };
 }
 
-    export function cellStyleInnovation(color) {
+export function cellStyleElements(color) {
+    return {
+        border: '1px solid #555',
+        width: '400px',
+        height: '50px',
+        lineHeight: '50px',
+        textAlign: 'center',
+        "background-color": colorMapBackground[color],
+    };
+}
+
+export function cellStyleInnovation(color) {
     return {
         border: '1px solid #555',
         width: '200px',

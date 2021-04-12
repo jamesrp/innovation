@@ -30,6 +30,7 @@ export class LostCitiesBoard extends React.Component {
         // TODO: feel like I saw a bug where the color didn't refresh
         // even though the cardname changed, after playing pos1 and drawing
         // a new card that ended up being pos1.
+        // Note: could this be related to hand being sorted?
         let hand = [];
         this.props.G[this.props.playerID].hand.forEach((element, idx, array) => {
             let validPlay = canPlay(this.props.G.playerPiles[this.props.playerID][element.color], element);
