@@ -65,8 +65,20 @@ export class InnovationBoard extends React.Component {
         tbody.push(renderFacedownZone(this.props.G[this.props.playerID].score, "My score", clickHandlers.myScore));
         tbody.push(renderFacedownZone(this.props.G[this.props.playerID].achievements, "My Achievements"));
         tbody.push(renderBoard(this.props.G[this.props.playerID].board, "My Board", clickHandlers.myBoard));
+        let handBody = [];
+        let handChunked = chunkArrayInGroups(this.props.G[this.props.playerID].hand, 5);
+        handChunked.forEach(chunk => handBody.push(renderHand(chunk, clickHandlers.myHand)));
+        // TODO: this shouldn't really be inside a tr - seems to make the border a bit wrong.
+        tbody.push(<tr>
+            <td style={cellStyleSide('clear', false)}>My Hand</td>
+            <td colspan="5">
+                <table style={tableStyle()}>
+                    <tbody>{handBody}</tbody>
+                </table>
+            </td>
+        </tr>);
 
-        // TODO: my hand.
+
 
         let msg1 = <h4 onClick={() => this.props.moves.DrawAction()}>Click to draw!</h4>;
         if (this.props.ctx.phase === "resolveStack") {
@@ -90,15 +102,10 @@ export class InnovationBoard extends React.Component {
                 <table style={tableStyle()}>
                     <tbody>{tbody}</tbody>
                 </table>
-                {renderCardList(this.props.G[this.props.playerID].hand, "My hand", element => clickHandlers.myHand(element.id))}
                 {renderList(this.props.G.log, "Log", x => x)}
             </div>
         );
     }
-}
-
-function renderCardList(arr, name, onClickFn) {
-    return renderList(arr, name, c => c.name, onClickFn);
 }
 
 function renderList(arr, name, nameFn, onClickFn) {
@@ -121,19 +128,6 @@ function renderList(arr, name, nameFn, onClickFn) {
     return <div>
         <h4>{name}</h4>
         <ul>{lis}</ul>
-    </div>
-}
-
-function renderTableau(board, msg, onClickFn) {
-    return <div>
-        <p>{msg}</p>
-        <ul>
-            <li>{renderCardList(board['green'], 'green', onClickFn)}</li>
-            <li>{renderCardList(board['yellow'], 'yellow', onClickFn)}</li>
-            <li>{renderCardList(board['red'], 'red', onClickFn)}</li>
-            <li>{renderCardList(board['blue'], 'blue', onClickFn)}</li>
-            <li>{renderCardList(board['purple'], 'purple', onClickFn)}</li>
-        </ul>
     </div>
 }
 
@@ -176,4 +170,23 @@ function renderBoard(board, msg, onClick) {
     return <tr>
         <td style={cellStyleSide('clear', false)}>{msg}</td>
         {output}</tr>;
+}
+
+function renderHand(hand, onClick) {
+    let output = hand.flatMap(c => {
+        if (onClick === undefined || onClick === null) {
+            return <td style={cellStyleInnovation(c.color)}>{c.name}</td>;
+        }
+        return <td onClick={() => onClick(c.id)} style={cellStyleInnovation(c.color)}>{c.name}</td>;
+    })
+    return <tr>
+        {output}</tr>;
+}
+
+function chunkArrayInGroups(arr, size) {
+    let myArray = [];
+    for(let i = 0; i < arr.length; i += size) {
+        myArray.push(arr.slice(i, i+size));
+    }
+    return myArray;
 }

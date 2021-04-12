@@ -31,7 +31,7 @@ export function cellStyle(color) {
     };
 }
 
-export function cellStyleInnovation(color) {
+    export function cellStyleInnovation(color) {
     return {
         border: '1px solid #555',
         width: '200px',
