@@ -34,7 +34,7 @@ export function cellStyle(color) {
 export function cellStyleElements(color) {
     return {
         border: '1px solid #555',
-        width: '400px',
+        width: '490px',
         height: '50px',
         lineHeight: '50px',
         textAlign: 'center',
