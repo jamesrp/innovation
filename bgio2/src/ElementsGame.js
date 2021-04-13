@@ -19,7 +19,7 @@ export const Elements = {
         }
     },
 
-    playerView: PlayerView.STRIP_SECRETS,
+    playerView: stripSecrets,
 
     endIf: (G, ctx) => {
         if (G.winner !== '') {
@@ -113,4 +113,11 @@ function opp(playerID) {
         x = "1";
     }
     return x;
+}
+
+function stripSecrets(G, ctx, playerID) {
+    if (ctx.gameover) {
+        return G;
+    }
+    return PlayerView.STRIP_SECRETS(G, ctx, playerID);
 }

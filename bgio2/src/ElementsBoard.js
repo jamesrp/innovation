@@ -36,12 +36,16 @@ export class ElementsBoard extends React.Component {
             margin: 'auto',
         };
 
-        let oppHand = this.props.G.playerHandCounts[opp] === 0 ? '0' : '?';
-        let oppBoard = sumArray(this.props.G.playerPiles[opp]);
+        let oppBoardTotal = sumArray(this.props.G.playerPiles[opp]);
+        let oppTotal = oppBoardTotal.toString() + (this.props.G.playerHandCounts[opp] === 0 ? '' : ' + ?');
         let table = sumArray(this.props.G.table);
-        let myBoard = sumArray(this.props.G.playerPiles[this.props.playerID]);
-        let myHand = sumArray(this.props.G[this.props.playerID].hand);
-        let canKnock = (myBoard + myHand) <= table;
+        let myTotal = sumArray(this.props.G.playerPiles[this.props.playerID]) + sumArray(this.props.G[this.props.playerID].hand);
+        let canKnock = myTotal <= table;
+
+        if (this.props.ctx.gameover) {
+            oppFakeHand = this.props.G[opp].hand;
+            oppTotal = oppBoardTotal + sumArray(oppFakeHand);
+        }
 
         return (
             <div>
@@ -50,11 +54,11 @@ export class ElementsBoard extends React.Component {
                     <table id="board" style={tableStyle()}>
                         <tbody>
                         <tr>
-                            <td style={sideStyle}>Opponent hand ({oppHand})</td>
+                            <td style={sideStyle}>Opponent hand ({oppTotal})</td>
                             <td style={cellStyleElements('red')}>{renderCards(oppFakeHand)}</td>
                         </tr>
                         <tr>
-                            <td style={sideStyle}>Opponent board ({oppBoard})</td>
+                            <td style={sideStyle}>Opponent board</td>
                             <td style={cellStyleElements('red')}>{renderCards(this.props.G.playerPiles[opp])}</td>
                         </tr>
                         <tr>
@@ -66,11 +70,11 @@ export class ElementsBoard extends React.Component {
                             <td style={cellStyleElements('grey')}>{renderCards(this.props.G.table)}</td>
                         </tr>
                         <tr>
-                            <td style={sideStyle}>My board ({myBoard})</td>
+                            <td style={sideStyle}>My board</td>
                             <td style={cellStyleElements('yellow')}>{renderCards(this.props.G.playerPiles[this.props.playerID])}</td>
                         </tr>
                         <tr>
-                            <td style={sideStyle}>My hand ({myHand})</td>
+                            <td style={sideStyle}>My hand ({myTotal})</td>
                             <td style={cellStyleElements('yellow')}>{renderCards(this.props.G[this.props.playerID].hand, myTurn ? this.props.moves.Play : null)}</td>
                         </tr>
                         </tbody>
