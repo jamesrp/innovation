@@ -150,5 +150,5 @@ function maybeClickableTD(style, msg, onClick) {
         ...style,
     }
     styleClickable.border = '3px solid #555';
-    return <td style={styleClickable} onClick={onClick}>{msg}</td>;
+    return <td style={styleClickable} onClick={() => onClick()}>{msg}</td>;
 }
