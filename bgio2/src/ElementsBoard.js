@@ -38,6 +38,7 @@ export class ElementsBoard extends React.Component {
         let table = sumArray(this.props.G.table);
         let myBoard = sumArray(this.props.G.playerPiles[this.props.playerID]);
         let myHand = sumArray(this.props.G[this.props.playerID].hand);
+        let canKnock = (myBoard + myHand) <= table;
 
         return (
             <div>
@@ -77,16 +78,16 @@ export class ElementsBoard extends React.Component {
                             <td style={actionHeaderStyle}>Other Actions</td>
                         </tr>
                         <tr>
-                            {maybeClickableTD(actionStyle, "Draw", (myTurn && this.props.G.table.length > 0) ? this.props.moves.Draw : null)}
+                            {maybeClickableTD(actionStyle, "DRAW from table", (myTurn && this.props.G.table.length > 0) ? this.props.moves.Draw : null)}
                         </tr>
                         <tr>
-                            {maybeClickableTD(actionStyle, "Discard", (myTurn && this.props.G[this.props.playerID].hand.includes(6)) ? this.props.moves.Discard : null)}
+                            {maybeClickableTD(actionStyle, "DISCARD a 6", (myTurn && this.props.G[this.props.playerID].hand.includes(6)) ? this.props.moves.Discard : null)}
                         </tr>
                         <tr>
-                            {maybeClickableTD(actionStyle, "Knock", myTurn ? this.props.moves.Knock : null)}
+                            {maybeClickableTD(actionStyle, "KNOCK", (myTurn && canKnock) ? this.props.moves.Knock : null)}
                         </tr>
                         <tr>
-                            {maybeClickableTD(actionStyle, "Fold", myTurn ? this.props.moves.Fold : null)}
+                            {maybeClickableTD(actionStyle, "FOLD", myTurn ? this.props.moves.Fold : null)}
                         </tr>
                         </tbody>
                     </table>
