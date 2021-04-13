@@ -57,6 +57,7 @@ function MakeLobby() {
         gameServer={`http://${window.location.hostname}:8000`}
         lobbyServer={`http://${window.location.hostname}:8080`}
         gameComponents={[
+            {game: Elements, board: ElementsBoard},
             {game: LostCities, board: LostCitiesBoard},
             {game: Innovation, board: InnovationBoard},
             {game: GloryToRome, board: GloryToRomeBoard}
