@@ -15,6 +15,9 @@ export class ElementsBoard extends React.Component {
             opp = "1";
         }
         let myTurn = (this.props.playerID === this.props.ctx.currentPlayer);
+        if (this.props.ctx.gameover) {
+            myTurn = false;
+        }
 
         let sideStyle = cellStyleSide('clear', false);
         sideStyle.width = '180px';
