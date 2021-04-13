@@ -1,6 +1,6 @@
 import React from 'react';
 import {boardStyle, tableStyle, cellStyleSide, cellStyleElements, handStyle, facedownCardStyle} from './styles';
-import {message} from './common';
+import {message, sumArray} from './common';
 
 export class ElementsBoard extends React.Component {
     render() {
@@ -17,7 +17,7 @@ export class ElementsBoard extends React.Component {
         let myTurn = (this.props.playerID === this.props.ctx.currentPlayer);
 
         let sideStyle = cellStyleSide('clear', false);
-        sideStyle.width = '140px';
+        sideStyle.width = '180px';
 
         let actionHeaderStyle = handStyle('clear');
         let actionStyle = handStyle('purple');
@@ -33,6 +33,12 @@ export class ElementsBoard extends React.Component {
             margin: 'auto',
         };
 
+        let oppHand = this.props.G.playerHandCounts[opp] === 0 ? '0' : '?';
+        let oppBoard = sumArray(this.props.G.playerPiles[opp]);
+        let table = sumArray(this.props.G.table);
+        let myBoard = sumArray(this.props.G.playerPiles[this.props.playerID]);
+        let myHand = sumArray(this.props.G[this.props.playerID].hand);
+
         return (
             <div>
                 <div style={boardStyle()}>
@@ -40,11 +46,11 @@ export class ElementsBoard extends React.Component {
                     <table id="board" style={tableStyle()}>
                         <tbody>
                         <tr>
-                            <td style={sideStyle}>Opponent hand</td>
+                            <td style={sideStyle}>Opponent hand ({oppHand})</td>
                             <td style={cellStyleElements('red')}>{renderCards(oppFakeHand)}</td>
                         </tr>
                         <tr>
-                            <td style={sideStyle}>Opponent board</td>
+                            <td style={sideStyle}>Opponent board ({oppBoard})</td>
                             <td style={cellStyleElements('red')}>{renderCards(this.props.G.playerPiles[opp])}</td>
                         </tr>
                         <tr>
@@ -52,15 +58,15 @@ export class ElementsBoard extends React.Component {
                             <td style={cellStyleElements('grey')}>{renderCards(this.props.G.discards)}</td>
                         </tr>
                         <tr>
-                            <td style={sideStyle}>Table</td>
+                            <td style={sideStyle}>Table ({table})</td>
                             <td style={cellStyleElements('grey')}>{renderCards(this.props.G.table)}</td>
                         </tr>
                         <tr>
-                            <td style={sideStyle}>My board</td>
+                            <td style={sideStyle}>My board ({myBoard})</td>
                             <td style={cellStyleElements('yellow')}>{renderCards(this.props.G.playerPiles[this.props.playerID])}</td>
                         </tr>
                         <tr>
-                            <td style={sideStyle}>My hand</td>
+                            <td style={sideStyle}>My hand ({myHand})</td>
                             <td style={cellStyleElements('yellow')}>{renderCards(this.props.G[this.props.playerID].hand, myTurn ? this.props.moves.Play : null)}</td>
                         </tr>
                         </tbody>
@@ -71,10 +77,10 @@ export class ElementsBoard extends React.Component {
                             <td style={actionHeaderStyle}>Other Actions</td>
                         </tr>
                         <tr>
-                            {maybeClickableTD(actionStyle, "Draw", myTurn ? this.props.moves.Draw : null)}
+                            {maybeClickableTD(actionStyle, "Draw", (myTurn && this.props.G.table.length > 0) ? this.props.moves.Draw : null)}
                         </tr>
                         <tr>
-                            {maybeClickableTD(actionStyle, "Discard", myTurn ? this.props.moves.Discard : null)}
+                            {maybeClickableTD(actionStyle, "Discard", (myTurn && this.props.G[this.props.playerID].hand.includes(6)) ? this.props.moves.Discard : null)}
                         </tr>
                         <tr>
                             {maybeClickableTD(actionStyle, "Knock", myTurn ? this.props.moves.Knock : null)}
@@ -141,7 +147,7 @@ function maybeClickableTD(style, msg, onClick) {
         return <td style={style}>{msg}</td>;
     }
     let styleClickable = {
-    ...style,
+        ...style,
     }
     styleClickable.border = '3px solid #555';
     return <td style={styleClickable} onClick={onClick}>{msg}</td>;

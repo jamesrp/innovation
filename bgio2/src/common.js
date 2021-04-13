@@ -15,3 +15,7 @@ export function message(ctx, playerID) {
     }
     return message;
 }
+
+export function sumArray(arr) {
+    return arr.reduce((x, y) => x + y, 0);
+}

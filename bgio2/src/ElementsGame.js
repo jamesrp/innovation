@@ -1,5 +1,7 @@
 import {INVALID_MOVE, PlayerView} from 'boardgame.io/core';
 
+import {sumArray} from './common';
+
 export const Elements = {
     name: 'elements',
     minPlayers: 2,
@@ -55,8 +57,8 @@ function Knock(G, ctx) {
     // TODO: check victory. If tied, knocker loses. Winner gets 2 points.
     let tableSum = G.table.reduce((x, y) => x + y);
     let playerSums = {
-        "0": G["0"].hand.reduce((x, y) => x + y) + G.playerPiles["0"].reduce((x, y) => x + y, 0),
-        "1": G["1"].hand.reduce((x, y) => x + y) + G.playerPiles["1"].reduce((x, y) => x + y, 0),
+        "0": sumArray(G["0"].hand) + sumArray(G.playerPiles["0"]),
+        "1": sumArray(G["1"].hand) + sumArray(G.playerPiles["1"]),
     }
     if (playerSums[ctx.playerID] > tableSum) {
         return INVALID_MOVE;
@@ -82,12 +84,13 @@ function Fold(G, ctx) {
 
 function mySetup(ctx) {
     let deck = ctx.random.Shuffle(Array(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6, 6));
+    let initialHandSize = 6;
     return {
         "0": {
-            hand: deck.splice(0, 8),
+            hand: deck.splice(0, initialHandSize),
         },
         "1": {
-            hand: deck.splice(0, 8),
+            hand: deck.splice(0, initialHandSize),
         },
         table: [],
         discards: [],
@@ -96,8 +99,8 @@ function mySetup(ctx) {
             "1": [],
         },
         playerHandCounts: {
-            "0": 8,
-            "1": 8,
+            "0": initialHandSize,
+            "1": initialHandSize,
         },
         winner: '',
         winnerPoints: 0,
