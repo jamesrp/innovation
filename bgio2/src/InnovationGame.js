@@ -105,6 +105,9 @@ const functionsTable = {
 
 function ClickCard(G, ctx, id) {
     let stackable = G.stack.pop();
+    if (!stackable.hasOwnProperty('executeWithCard')) {
+        return INVALID_MOVE;
+    }
     let x = functionsTable[stackable.executeWithCard](G, stackable.playerID, id);
     TryUnwindStack(G, ctx);
     return x;
@@ -112,6 +115,9 @@ function ClickCard(G, ctx, id) {
 
 function ClickMenu(G, ctx, msg) {
     let stackable = G.stack.pop();
+    if (!stackable.hasOwnProperty('executeWithMenu')) {
+        return INVALID_MOVE;
+    }
     let x = functionsTable[stackable.executeWithMenu](G, stackable.playerID, msg);
     TryUnwindStack(G, ctx);
     return x;
@@ -274,9 +280,31 @@ function DogmaAction(G, ctx, id) {
     let card = candidates[index];
     G.log.push("Player " + ctx.playerID + " activates " + card.name);
 
-    // TODO: for now we always share; need to actually check symbols.
-    G.stack.push(stackablesTable["shareDraw"](G, ctx.playerID));
-    card.dogmasFunction.forEach(dogmaName => G.stack.push(stackablesTable[dogmaName](G, ctx.playerID)));
+    let playersToShare = [];
+    let activePlayerSymbols = symbolCounts(G[ctx.playerID].board);
+    // Note: this is the wrong iteration order for multiplayer.
+    // If we implement 3+ players, start from player x+1` and wrap around.
+    ctx.playOrder.forEach(player => {
+        if (player === ctx.playerID) {
+            return;
+        }
+        let playerSymbols = symbolCounts(G[player].board);
+        if (playerSymbols[card.mainSymbol] >= activePlayerSymbols[card.mainSymbol]) {
+            playersToShare.push(player);
+        }
+    });
+
+    // TODO: for now we assume a share-draw is present if we shared.
+    // Later, figure out how to wire through the bool of whether anything changed.
+    if (playersToShare.length > 0) {
+        G.stack.push(stackablesTable["shareDraw"](G, ctx.playerID));
+        card.dogmasFunction.forEach(dogmaName => {
+            G.stack.push(stackablesTable[dogmaName](G, ctx.playerID));
+            playersToShare.forEach(playerID => G.stack.push(stackablesTable[dogmaName](G, playerID)))
+        });
+    } else {
+        card.dogmasFunction.forEach(dogmaName => G.stack.push(stackablesTable[dogmaName](G, ctx.playerID)));
+    }
 
     TryUnwindStack(G, ctx);
     recordMainPhaseAction(G, ctx);
