@@ -73,6 +73,7 @@ export const Innovation = {
 const acceleratedSetup = true; // Give each player a bunch of stuff to speed up debugging.
 
 export const colors = Array.of("yellow", "blue", "purple", "red", "green");
+export const symbols = Array.of("castle", "crown", "bulb", "leaf", "factory", "clock");
 export const ages = Array.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
 const functionsTable = {
@@ -190,6 +191,24 @@ function drawAux(G, playerID, ageToDraw) {
     }
 }
 
+// TODO: symbolCounts does not consider splay, it only takes the top card.
+export function symbolCounts(board) {
+    let counts = {};
+    for (const key of symbols) {
+        counts[key] = 0;
+    }
+    topCards(board).forEach(card => {
+        // symbols == ["hex", "", "", "castle", "castle", "castle"] e.g.
+        card.symbols.forEach(s => {
+            if (s === "hex" || s === "") {
+                return;
+            }
+            counts[s] += 1;
+        })
+    });
+    return counts;
+}
+
 // TODO: topAges gets all cards on board. Need to implement piles.
 export function topAge(G, playerID) {
     let topAges = topCards(G[playerID].board).map(element => element.age);
@@ -299,17 +318,15 @@ function mySetup(ctx) {
         drewEleven: false,
     };
     for (let i = 0; i < ctx.numPlayers; i++) {
+        let board = {};
+        for (const key of colors) {
+            board[key] = [];
+        }
         let playerData = {
             hand: Array(0),
             score: Array(0),
             achievements: Array(0),
-            board: {
-                "green": Array(0),
-                "yellow": Array(0),
-                "purple": Array(0),
-                "red": Array(0),
-                "blue": Array(0),
-            },
+            board: board,
         };
         for (let j = 0; j < 2; j++) {
             playerData.hand.push(G.decks[1].pop());

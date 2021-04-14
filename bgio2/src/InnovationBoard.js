@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {topAge, colors, ages} from './InnovationGame';
-import {cellStyleInnovation, cellStyleClickable, cellStyleSide, facedownCardStyle, tableStyle} from "./styles";
+import {colors, ages, symbols, symbolCounts} from './InnovationGame';
+import {cellStyleInnovation, cellStyleSide, facedownCardStyle, tableStyle} from "./styles";
 
 export class InnovationBoard extends React.Component {
     render() {
@@ -78,6 +78,9 @@ export class InnovationBoard extends React.Component {
             </td>
         </tr>);
 
+        let mySymbols = renderSymbols(symbolCounts(this.props.G[this.props.playerID].board));
+        let oppSymbols = renderSymbols(symbolCounts(this.props.G[opp].board));
+
 
 
         let msg1 = <h4 onClick={() => this.props.moves.DrawAction()}>Click to draw!</h4>;
@@ -99,6 +102,8 @@ export class InnovationBoard extends React.Component {
             <div>
                 <h3> Player {this.props.playerID} board {message}</h3>
                 {msg1}
+                <p>My symbols: {mySymbols}</p>
+                <p>Opp symbols: {oppSymbols}</p>
                 <table style={tableStyle()}>
                     <tbody>{tbody}</tbody>
                 </table>
@@ -189,4 +194,12 @@ function chunkArrayInGroups(arr, size) {
         myArray.push(arr.slice(i, i+size));
     }
     return myArray;
+}
+
+function renderSymbols(counts) {
+    let output = [];
+    symbols.forEach(s => {
+        output.push(s + ": " +  counts[s].toString());
+    })
+    return <span>{output.join(", ")}</span>
 }
