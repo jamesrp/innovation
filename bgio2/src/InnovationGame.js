@@ -1,59 +1,5 @@
 import {INVALID_MOVE, TurnOrder} from 'boardgame.io/core';
 import {generateDecks, stackablesTable} from './InnovationData';
-import {computePoints} from "./LostCitiesGame";
-
-const acceleratedSetup = true; // Give each player a bunch of stuff to speed up debugging.
-
-export const colors = Array.of("yellow", "blue", "purple", "red", "green");
-export const ages = Array.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-
-const functionsTable = {
-    "wheel": (G, playerID) => drawMultiple(G, playerID, 1, 2),
-    "writing": (G, playerID) => drawMultiple(G, playerID, 2, 1),
-    "shareDraw": (G, playerID) => drawNormal(G, playerID),
-    "scoreOneFromHand": (G, playerID, cardID) => {
-        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
-        if (index === -1) {
-            return INVALID_MOVE;
-        }
-        let name = G[playerID].hand[index].name;
-        G[playerID].score.push(G[playerID].hand[index]);
-        G[playerID].hand.splice(index, 1);
-        G.log.push("Player " + playerID + " scores " + name + " from hand");
-    },
-    "mayDrawATen": (G, playerID, msg) => {
-        if (msg === "no") {
-            G.log.push("Player " + playerID + " declines to draw a 3");
-            return;
-        }
-        if (msg === "yes") {
-            drawMultiple(G, playerID, 10, 1)
-            return;
-        }
-        return INVALID_MOVE;
-    },
-};
-
-function ClickCard(G, ctx, id) {
-    let stackable = G.stack.pop();
-    let x = functionsTable[stackable.executeWithCard](G, stackable.playerID, id);
-    TryUnwindStack(G, ctx);
-    return x;
-}
-
-function ClickMenu(G, ctx, msg) {
-    let stackable = G.stack.pop();
-    let x = functionsTable[stackable.executeWithMenu](G, stackable.playerID, msg);
-    TryUnwindStack(G, ctx);
-    return x;
-}
-
-function TryUnwindStack(G, ctx) {
-    while (G.stack.length !== 0 && G.stack[G.stack.length - 1].playerToMove === '') {
-        let stackable = G.stack.pop();
-        functionsTable[stackable.executeBlind](G, stackable.playerID);
-    }
-}
 
 export const Innovation = {
     name: 'innovation',
@@ -123,6 +69,59 @@ export const Innovation = {
 
     endIf: computeVictory,
 };
+
+const acceleratedSetup = true; // Give each player a bunch of stuff to speed up debugging.
+
+export const colors = Array.of("yellow", "blue", "purple", "red", "green");
+export const ages = Array.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+const functionsTable = {
+    "wheel": (G, playerID) => drawMultiple(G, playerID, 1, 2),
+    "writing": (G, playerID) => drawMultiple(G, playerID, 2, 1),
+    "shareDraw": (G, playerID) => drawNormal(G, playerID),
+    "scoreOneFromHand": (G, playerID, cardID) => {
+        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
+        if (index === -1) {
+            return INVALID_MOVE;
+        }
+        let name = G[playerID].hand[index].name;
+        G[playerID].score.push(G[playerID].hand[index]);
+        G[playerID].hand.splice(index, 1);
+        G.log.push("Player " + playerID + " scores " + name + " from hand");
+    },
+    "mayDrawATen": (G, playerID, msg) => {
+        if (msg === "no") {
+            G.log.push("Player " + playerID + " declines to draw a 3");
+            return;
+        }
+        if (msg === "yes") {
+            drawMultiple(G, playerID, 10, 1)
+            return;
+        }
+        return INVALID_MOVE;
+    },
+};
+
+function ClickCard(G, ctx, id) {
+    let stackable = G.stack.pop();
+    let x = functionsTable[stackable.executeWithCard](G, stackable.playerID, id);
+    TryUnwindStack(G, ctx);
+    return x;
+}
+
+function ClickMenu(G, ctx, msg) {
+    let stackable = G.stack.pop();
+    let x = functionsTable[stackable.executeWithMenu](G, stackable.playerID, msg);
+    TryUnwindStack(G, ctx);
+    return x;
+}
+
+function TryUnwindStack(G, ctx) {
+    while (G.stack.length !== 0 && G.stack[G.stack.length - 1].playerToMove === '') {
+        let stackable = G.stack.pop();
+        functionsTable[stackable.executeBlind](G, stackable.playerID);
+    }
+}
 
 // TODO: we need to check this during each stackable etc.
 // Technically in the middle of every effect.
