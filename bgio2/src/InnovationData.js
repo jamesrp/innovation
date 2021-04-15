@@ -57,6 +57,16 @@ function loadCards(ctx) {
                 mainSymbol: "leaf",
                 symbols: ["leaf", "", "", "hex", "leaf", "bulb"],
             });
+            cards.push({
+                id: ctx.random.Number().toString(),
+                color: "red",
+                age: age,
+                name: "Walls/" + age.toString() + "/" + i.toString(),
+                dogmasEnglish: ["Splay your purple cards left."],
+                dogmasFunction: ["splayPurpleLeft"],
+                mainSymbol: "clock",
+                symbols: ["leaf", "", "", "hex", "clock", "clock"],
+            });
         }
     }
     return cards;
@@ -94,6 +104,12 @@ export const stackablesTable = {
         playerToMove: playerID,
         executeWithMenu: "mayDrawATen",
         menuOptions: Array.of("yes", "no"),
+        playerID: playerID,
+    }),
+    "splayPurpleLeft": (G, playerID) => ({
+        name: "splayPurpleLeft",
+        playerToMove: '',
+        executeBlind: "splayPurpleLeft",
         playerID: playerID,
     }),
 }

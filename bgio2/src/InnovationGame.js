@@ -101,6 +101,9 @@ const functionsTable = {
         }
         return INVALID_MOVE;
     },
+    "splayPurpleLeft": (G, playerID) => {
+        G[playerID].board.splay['purple'] = 'left';
+    },
 };
 
 function ClickCard(G, ctx, id) {
@@ -203,19 +206,41 @@ export function symbolCounts(board) {
     for (const key of symbols) {
         counts[key] = 0;
     }
-    topCards(board).forEach(card => {
-        // symbols == ["hex", "", "", "castle", "castle", "castle"] e.g.
-        card.symbols.forEach(s => {
+    colors.forEach(color => {
+        let pile = board[color];
+        if (pile.length === 0) {
+            return;
+        }
+        let splay = board.splay[color];
+        // 0 1 2
+        // 3 4 5
+        let positions = [];
+        if (splay === 'left') {
+            positions = [2, 5];
+        } else if (splay === 'right') {
+            positions = [0, 3];
+        } else if (splay === 'up') {
+            positions = [3, 4, 5];
+        }
+        for (let i = 0; i < pile.length - 1; i++) {
+            positions.forEach(pos => {
+                let s = pile[i].symbols[pos];
+                if (s === "hex" || s === "") {
+                    return;
+                }
+                counts[s] += 1;
+            });
+        }
+        pile[pile.length - 1].symbols.forEach(s => {
             if (s === "hex" || s === "") {
                 return;
             }
             counts[s] += 1;
-        })
+        });
     });
     return counts;
 }
 
-// TODO: topAges gets all cards on board. Need to implement piles.
 export function topAge(G, playerID) {
     let topAges = topCards(G[playerID].board).map(element => element.age);
     let age = 0;
@@ -347,9 +372,12 @@ function mySetup(ctx) {
     };
     for (let i = 0; i < ctx.numPlayers; i++) {
         let board = {};
+        let splay = {};
         for (const key of colors) {
             board[key] = [];
+            splay[key] = '';
         }
+        board.splay = splay;
         let playerData = {
             hand: Array(0),
             score: Array(0),
