@@ -44,11 +44,16 @@ export function cellStyleElements(color) {
 
 export function cellStyleInnovation(color) {
     return {
+        padding: '2px',
+        'vertical-align': 'top',
+        // 'text-align': 'left',
+        position: 'relative',
+        margin: '5px',
         border: '1px solid #555',
         width: '200px',
         height: '50px',
-        lineHeight: '50px',
-        textAlign: 'center',
+        // lineHeight: '50px',
+        // textAlign: 'center',
         "background-color": colorMapBackground[color],
     };
 }

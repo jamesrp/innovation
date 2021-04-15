@@ -82,7 +82,6 @@ export class InnovationBoard extends React.Component {
         let oppSymbols = renderSymbols(symbolCounts(this.props.G[opp].board));
 
 
-
         let msg1 = <h4 onClick={() => this.props.moves.DrawAction()}>Click to draw!</h4>;
         if (this.props.ctx.phase === "resolveStack") {
             // TODO bug - shouldn't stack always have something in it if we have it?
@@ -155,6 +154,50 @@ function renderFacedownZone(zone, msg, onClick) {
     </tr>;
 }
 
+// Board classes.
+const cardnameStyle = {
+    display: 'inline-block',
+    float: 'right',
+    'text-align': 'right',
+    'font-size': '11px',
+}
+const symbolStyle = {
+    display: 'inline-block',
+    float: 'left',
+    'font-size': '11px',
+}
+
+// function renderCard(top, extra) {
+//     return <div><span class={symbolStyle}>C</span><span class={cardnameStyle}>{top.name}{extra}</span></div>
+// }
+
+const splayShort = {
+    '': '',
+    'up': 'u',
+    'left': 'l',
+    'right': 'r',
+}
+
+const symbolsShort = {
+    '': '',
+    'hex': 'H',
+    'castle': 'Ca',
+    'clock': 'Cl',
+    'crown': 'Cr',
+    'bulb': 'B',
+    'leaf': 'L',
+    'factory': 'F',
+}
+
+function renderCard(top, extra) {
+    let sy =top.symbols.map(s => symbolsShort[s]);
+    return <div><span className={cardnameStyle}>{top.name}[{top.age}]{extra}</span><br/>
+        <span className={symbolStyle}>{sy[0]}</span><span className={symbolStyle}>{sy[1]}</span><span className={symbolStyle}>{sy[2]}</span><br/>
+        <span className={symbolStyle}>{sy[3]}</span><span className={symbolStyle}>{sy[4]}</span><span className={symbolStyle}>{sy[5]}</span>
+        <hr/>
+        {top.dogmasEnglish[0]}</div>
+}
+
 // TODO: rudimentary board - TBD how to represent a top card + icons succinctly.
 function renderBoard(board, msg, onClick) {
     let output = colors.flatMap(c => {
@@ -164,13 +207,15 @@ function renderBoard(board, msg, onClick) {
         }
         let top = pile[pile.length - 1];
         let extra = '';
+        let splay = splayShort[board.splay[c]];
         if (pile.length > 1) {
-            extra = ' [+' + (pile.length - 1).toString() + ']';
+            extra = ' [+' + splay + (pile.length - 1).toString() + ']';
         }
+        let cardView = renderCard(top, extra);
         if (onClick === undefined || onClick === null) {
-            return <td style={cellStyleInnovation(c)}>{top.name}{extra}</td>;
+            return <td style={cellStyleInnovation(c)}>{cardView}</td>;
         }
-        return <td onClick={() => onClick(top.id)} style={cellStyleInnovation(c)}>{top.name}{extra}</td>;
+        return <td onClick={() => onClick(top.id)} style={cellStyleInnovation(c)}>{cardView}</td>;
     })
     return <tr>
         <td style={cellStyleSide('clear', false)}>{msg}</td>
@@ -180,9 +225,9 @@ function renderBoard(board, msg, onClick) {
 function renderHand(hand, onClick) {
     let output = hand.flatMap(c => {
         if (onClick === undefined || onClick === null) {
-            return <td style={cellStyleInnovation(c.color)}>{c.name}</td>;
+            return <td style={cellStyleInnovation(c.color)}>{renderCard(c,'')}</td>;
         }
-        return <td onClick={() => onClick(c.id)} style={cellStyleInnovation(c.color)}>{c.name}</td>;
+        return <td onClick={() => onClick(c.id)} style={cellStyleInnovation(c.color)}>{renderCard(c,'')}</td>;
     })
     return <tr>
         {output}</tr>;
@@ -190,8 +235,8 @@ function renderHand(hand, onClick) {
 
 function chunkArrayInGroups(arr, size) {
     let myArray = [];
-    for(let i = 0; i < arr.length; i += size) {
-        myArray.push(arr.slice(i, i+size));
+    for (let i = 0; i < arr.length; i += size) {
+        myArray.push(arr.slice(i, i + size));
     }
     return myArray;
 }
@@ -199,7 +244,7 @@ function chunkArrayInGroups(arr, size) {
 function renderSymbols(counts) {
     let output = [];
     symbols.forEach(s => {
-        output.push(s + ": " +  counts[s].toString());
+        output.push(s + ": " + counts[s].toString());
     })
     return <span>{output.join(", ")}</span>
 }
