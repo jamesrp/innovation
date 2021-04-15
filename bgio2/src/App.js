@@ -53,7 +53,7 @@ function MainPage() {
 }
 
 function MakeLobby() {
-    return <div><p>BTW - lobby is broken right now. Just navigate to game URLs yourself.</p><Lobby
+    return <Lobby
         gameServer={`http://${window.location.hostname}:8000`}
         lobbyServer={`http://${window.location.hostname}:8080`}
         gameComponents={[
@@ -62,7 +62,7 @@ function MakeLobby() {
             {game: Innovation, board: InnovationBoard},
             {game: GloryToRome, board: GloryToRomeBoard}
         ]}
-    /></div>;
+    />;
 }
 
 function MakeClient(game, match, player) {
