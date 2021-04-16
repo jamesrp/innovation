@@ -16,6 +16,20 @@ export const Innovation = {
             start: true,
             next: 'mainPhase',
             endIf: (G, ctx) => (G.numDoneOpening === ctx.numPlayers),
+            onEnd: (G, ctx) => {
+                let players = ctx.playOrder.slice();
+                players.sort((a, b) => {
+                    let nameA = topCards(G[a].board)[0].name;
+                    let nameB = topCards(G[b].board)[0].name;
+                    if (nameA < nameB) {
+                        return -1;
+                    } else if (nameA > nameB) {
+                        return 1;
+                    }
+                    return 0;
+                });
+                G.turnOrderStateMachine.leader = players[0];
+            },
         },
 
         mainPhase: {
@@ -267,10 +281,10 @@ function MeldAction(G, ctx, id) {
     let color = G[ctx.playerID].hand[index].color;
     G[ctx.playerID].board[color].push(G[ctx.playerID].hand[index]);
     G[ctx.playerID].hand.splice(index, 1);
+    G.log.push("Player " + ctx.playerID + " melds " + name);
     if (ctx.phase === 'startPhase') {
-        openingPhaseBookkeeping(G, ctx);
+        G.numDoneOpening += 1;
     } else {
-        G.log.push("Player " + ctx.playerID + " melds " + name);
         recordMainPhaseAction(G, ctx);
     }
 }
@@ -333,25 +347,6 @@ function DogmaAction(G, ctx, id) {
 
     TryUnwindStack(G, ctx);
     recordMainPhaseAction(G, ctx);
-}
-
-// TODO: does this work?
-function openingPhaseBookkeeping(G, ctx) {
-    G.numDoneOpening += 1;
-    if (G.numDoneOpening === ctx.numPlayers) {
-        let players = ctx.playOrder.slice();
-        players.sort((a, b) => {
-            let nameA = topCards(G[a].board)[0].name;
-            let nameB = topCards(G[b].board)[0].name;
-            if (nameA < nameB) {
-                return -1;
-            } else if (nameA > nameB) {
-                return 1;
-            }
-            return 0;
-        });
-        G.turnOrderStateMachine.leader = players[0];
-    }
 }
 
 function mySetup(ctx) {
