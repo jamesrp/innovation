@@ -176,11 +176,13 @@ function playerPosFromStackable(G, ctx) {
 }
 
 function recordMainPhaseAction(G, ctx) {
-    // TODO: we don't handle the initial turns where you only get 1 action.
     G.turnOrderStateMachine.movesAsLeader += 1;
-    if (G.turnOrderStateMachine.movesAsLeader == 2) {
+    if (G.turnOrderStateMachine.initialTurnsRemaining > 0 || G.turnOrderStateMachine.movesAsLeader === 2) {
         G.turnOrderStateMachine.leader = nextPlayer(G.turnOrderStateMachine.leader, ctx.numPlayers);
         G.turnOrderStateMachine.movesAsLeader = 0;
+    }
+    if (G.turnOrderStateMachine.initialTurnsRemaining > 0 ) {
+        G.turnOrderStateMachine.initialTurnsRemaining -= 1;
     }
 }
 
