@@ -9,11 +9,20 @@ export function message(ctx, playerID) {
         } else {
             message = " - it's a draw!";
         }
-
-    } else if (playerID === ctx.currentPlayer) {
+    } else if (myTurnP(ctx, playerID)) {
         message = ' - MY TURN!';
     }
     return message;
+}
+
+export function myTurnP(ctx, playerID) {
+    if (ctx.gameover || playerID === ctx.currentPlayer) {
+        return true;
+    }
+    if (ctx.activePlayers !== null) {
+        return ctx.activePlayers.hasOwnProperty(playerID);
+    }
+    return false;
 }
 
 export function sumArray(arr) {

@@ -2,22 +2,11 @@ import React from 'react';
 
 import {colors, ages, symbols, symbolCounts} from './InnovationGame';
 import {cellStyleInnovation, cellStyleSide, facedownCardStyle, tableStyle} from "./styles";
+import {message} from "./common";
 
 export class InnovationBoard extends React.Component {
     render() {
-        let message = '';
-        if (this.props.ctx.gameover) {
-            if (this.props.ctx.gameover.winner !== undefined) {
-                message = " - Player " + this.props.ctx.gameover.winner + " wins!";
-                if (this.props.ctx.gameover.winner === this.props.playerID) {
-                    message = " - I win!";
-                }
-            } else {
-                message = " - it's a draw!";
-            }
-        } else if (this.props.playerID === this.props.ctx.currentPlayer) {
-            message = ' - MY TURN!';
-        }
+        let msg = message(this.props.ctx, this.props.playerID);
 
         let decks = [];
         ages.forEach(element => decks.push(
@@ -99,7 +88,7 @@ export class InnovationBoard extends React.Component {
         }
         return (
             <div>
-                <h3> Player {this.props.playerID} board {message}</h3>
+                <h3> Player {this.props.playerID} board {msg}</h3>
                 {msg1}
                 <p>My symbols: {mySymbols}</p>
                 <p>Opp symbols: {oppSymbols}</p>

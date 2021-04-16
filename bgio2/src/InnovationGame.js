@@ -4,12 +4,15 @@ import {generateDecks, stackablesTable} from './InnovationData';
 export const Innovation = {
     name: 'innovation',
     minPlayers: 2,
-    maxPlayers: 4,
+    maxPlayers: 2, // TODO: not everything is multiplayer-friendly or teams-friendly.
     setup: mySetup,
 
     phases: {
         startPhase: {
             moves: {MeldAction},
+            stages: {
+                startStage: {},
+            },
             turn: {
                 moveLimit: 1,
             },
@@ -181,7 +184,7 @@ function recordMainPhaseAction(G, ctx) {
         G.turnOrderStateMachine.leader = nextPlayer(G.turnOrderStateMachine.leader, ctx.numPlayers);
         G.turnOrderStateMachine.movesAsLeader = 0;
     }
-    if (G.turnOrderStateMachine.initialTurnsRemaining > 0 ) {
+    if (G.turnOrderStateMachine.initialTurnsRemaining > 0) {
         G.turnOrderStateMachine.initialTurnsRemaining -= 1;
     }
 }
@@ -397,6 +400,7 @@ function mySetup(ctx) {
             }
         }
     }
+    ctx.events.setActivePlayers({all: 'startStage', moveLimit: 1});
     return G;
 }
 
