@@ -1,4 +1,4 @@
-import {INVALID_MOVE, TurnOrder} from 'boardgame.io/core';
+import {INVALID_MOVE} from 'boardgame.io/core';
 import {generateDecks, stackablesTable} from './InnovationData';
 
 export const Innovation = {
@@ -6,6 +6,7 @@ export const Innovation = {
     minPlayers: 2,
     maxPlayers: 2, // TODO: not everything is multiplayer-friendly or teams-friendly.
     setup: mySetup,
+    playerView: stripSecrets,
 
     phases: {
         startPhase: {
@@ -155,7 +156,7 @@ function TryUnwindStack(G, ctx) {
 // Let's just check after turns for now and revisit later.
 function computeVictory(G, ctx) {
     let players = ctx.playOrder.slice();
-    let winningPlayers = Array(0);
+    let winningPlayers = [];
     if (G.drewEleven) {
         // compute highest score.
         let scores = players.map(p => getScore(G, p));
@@ -356,7 +357,7 @@ function DogmaAction(G, ctx, id) {
 
 function mySetup(ctx) {
     let G = {
-        log: Array(0),
+        log: [],
         decks: generateDecks(ctx),
         turnOrderStateMachine: {
             numSingleTurnsRemaining: false,
@@ -364,25 +365,18 @@ function mySetup(ctx) {
             movesAsLeader: 0,
             initialTurnsRemaining: Math.floor(ctx.numPlayers / 2),
         },
-        stack: Array(0),
-        achievements: Array(0),
+        stack: [],
+        achievements: [],
         achievementsToWin: 8 - ctx.numPlayers, // TODO: different for expansions.
         numDoneOpening: 0,
         drewEleven: false,
     };
     for (let i = 0; i < ctx.numPlayers; i++) {
-        let board = {};
-        let splay = {};
-        for (const key of colors) {
-            board[key] = [];
-            splay[key] = '';
-        }
-        board.splay = splay;
         let playerData = {
-            hand: Array(0),
-            score: Array(0),
-            achievements: Array(0),
-            board: board,
+            hand: [],
+            score: [],
+            achievements: [],
+            board: emptyBoard(),
         };
         for (let j = 0; j < 2; j++) {
             playerData.hand.push(G.decks[1].pop());
@@ -415,4 +409,56 @@ function topCards(board) {
         }
         return [board[color][board[color].length - 1]];
     });
+}
+
+function stripSecrets(G, ctx, playerID) {
+    if (ctx.gameover) {
+        return G;
+    }
+    let redactedDecks = {};
+    for (let age = 1; age < 11; age++) {
+        redactedDecks[age] = redactedCardArray(G.decks[age]);
+    }
+    let gRedacted = {
+        ...G,
+        decks: redactedDecks,
+        achievements: redactedCardArray(G.achievements),
+    };
+    let players = ctx.playOrder.slice();
+    players.forEach(otherPlayerID => {
+        if (otherPlayerID === playerID) {
+            return;
+        }
+        gRedacted[otherPlayerID] = {
+            ...(G[otherPlayerID]),
+            hand: redactedCardArray(G[otherPlayerID].hand),
+            score: redactedCardArray(G[otherPlayerID].score),
+            achievements: redactedCardArray(G[otherPlayerID].achievements),
+        };
+        if (ctx.phase === 'startPhase') {
+            gRedacted[otherPlayerID].board = emptyBoard();
+            gRedacted.log= [];
+        }
+    });
+    return gRedacted;
+}
+
+function redactedCardArray(arr) {
+    return arr.map(card => {
+        return {
+            id: card.id, // Do we need this ever? Not sure if anyone can click facedown cards. Technically leaks everything?
+            age: card.age,
+        };
+    });
+}
+
+function emptyBoard() {
+    let board = {};
+    let splay = {};
+    for (const key of colors) {
+        board[key] = [];
+        splay[key] = '';
+    }
+    board.splay = splay;
+    return board;
 }
