@@ -110,7 +110,7 @@ const functionsTable = {
     },
     "mayDrawATen": (G, playerID, msg) => {
         if (msg === "no") {
-            G.log.push("Player " + playerID + " declines to draw a 3");
+            G.log.push("Player " + playerID + " declines to draw a 10");
             return;
         }
         if (msg === "yes") {
@@ -119,8 +119,21 @@ const functionsTable = {
         }
         return INVALID_MOVE;
     },
+    "mayDrawAThree": (G, playerID, msg) => {
+        if (msg === "no") {
+            G.log.push("Player " + playerID + " declines to draw a 3");
+            return;
+        }
+        if (msg === "yes") {
+            drawMultiple(G, playerID, 3, 1)
+            return;
+        }
+        return INVALID_MOVE;
+    },
     "splayPurpleLeft": (G, playerID) => {
-        G[playerID].board.splay['purple'] = 'left';
+        if (G[playerID].board['purple'].length > 1) {
+            G[playerID].board.splay['purple'] = 'left';
+        }
     },
 };
 
@@ -341,14 +354,16 @@ function DogmaAction(G, ctx, id) {
 
     // TODO: for now we assume a share-draw is present if we shared.
     // Later, figure out how to wire through the bool of whether anything changed.
+    let dogmasToPush = card.dogmasFunction.slice();
+    dogmasToPush.reverse();
     if (playersToShare.length > 0) {
         G.stack.push(stackablesTable["shareDraw"](G, ctx.playerID));
-        card.dogmasFunction.forEach(dogmaName => {
+        dogmasToPush.forEach(dogmaName => {
             G.stack.push(stackablesTable[dogmaName](G, ctx.playerID));
             playersToShare.forEach(playerID => G.stack.push(stackablesTable[dogmaName](G, playerID)))
         });
     } else {
-        card.dogmasFunction.forEach(dogmaName => G.stack.push(stackablesTable[dogmaName](G, ctx.playerID)));
+        dogmasToPush.forEach(dogmaName => G.stack.push(stackablesTable[dogmaName](G, ctx.playerID)));
     }
 
     TryUnwindStack(G, ctx);
