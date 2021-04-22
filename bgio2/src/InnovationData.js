@@ -67,6 +67,16 @@ function loadCards(ctx) {
                 mainSymbol: "clock",
                 symbols: ["leaf", "", "", "hex", "clock", "clock"],
             });
+            cards.push({
+                id: ctx.random.Number().toString(),
+                color: "yellow",
+                age: age,
+                name: "Agriculture",
+                dogmasEnglish: ["You may return a card from your hand. If you do, score a card of value x+1."],
+                dogmasFunction: ["returnOneFromHand"],
+                mainSymbol: "leaf",
+                symbols: ["leaf", "", "", "hex", "leaf", "leaf"],
+            });
         }
     }
     return cards;
@@ -117,6 +127,16 @@ export const stackablesTable = {
         name: "splayPurpleLeft",
         playerToMove: '',
         executeBlind: "splayPurpleLeft",
+        playerID: playerID,
+    }),
+    "returnOneFromHand": (G, playerID) => ({
+        name: "returnOneFromHand",
+        playerToMove: playerID,
+        executeWithCard: "returnOneFromHand",
+        executeWithMenu: "decline",
+        menuOptions: Array.of("no"),
+        cardOptions: Array(0), // TODO: fill out with player's hand.
+        // TODO: if player has no hand make it a noop.
         playerID: playerID,
     }),
 }

@@ -48,7 +48,7 @@ function MainPage() {
     return <div>
         <p>Expected one of two URL formats:</p>
         <p><a href="/lobby">/lobby</a></p>
-        <p><a href="/match/gameName/matchID/playerID">/match/gameName/matchID/playerID</a></p>
+        <p><a href="/match/gameName/matchID/0">/match/gameName/matchID/0</a> (trailing 0 is playerID)</p>
     </div>;
 }
 

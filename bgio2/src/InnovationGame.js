@@ -108,6 +108,22 @@ const functionsTable = {
         G[playerID].hand.splice(index, 1);
         G.log.push("Player " + playerID + " scores " + name + " from hand");
     },
+    "returnOneFromHand": (G, playerID, cardID) => {
+        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
+        if (index === -1) {
+            return INVALID_MOVE;
+        }
+        let name = G[playerID].hand[index].name;
+        let age = G[playerID].hand[index].age;
+        G.decks[age].push(G[playerID].hand[index]); // TODO push to bottom?
+        G[playerID].hand.splice(index, 1);
+        let scoredCard = drawAuxAndReturn(G, playerID, age + 1);
+        if (scoredCard !== null) {
+            G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
+            G[playerID].score.push(scoredCard);
+        }
+        G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
+    },
     "mayDrawATen": (G, playerID, msg) => {
         if (msg === "no") {
             G.log.push("Player " + playerID + " declines to draw a 10");
@@ -134,6 +150,13 @@ const functionsTable = {
         if (G[playerID].board['purple'].length > 1) {
             G[playerID].board.splay['purple'] = 'left';
         }
+    },
+    "decline": (G, playerID, msg) => {
+        if (msg === "no") {
+            G.log.push("Player " + playerID + " declines");
+            return;
+        }
+        return INVALID_MOVE;
     },
 };
 
@@ -167,6 +190,8 @@ function TryUnwindStack(G, ctx) {
 // TODO: we need to check this during each stackable etc.
 // Technically in the middle of every effect.
 // Let's just check after turns for now and revisit later.
+// Actually, we probably can only check this after each action,
+// and just freeze the score pile if G.drewEleven.
 function computeVictory(G, ctx) {
     let players = ctx.playOrder.slice();
     let winningPlayers = [];
@@ -220,16 +245,25 @@ function drawMultiple(G, playerID, age, num) {
 }
 
 // TODO: want to use typescript... ageToDraw is an int.
-function drawAux(G, playerID, ageToDraw) {
+function drawAuxAndReturn(G, playerID, ageToDraw) {
     if (ageToDraw <= 0) {
-        drawAux(G, playerID, 1);
+        return drawAux(G, playerID, 1);
     } else if (ageToDraw > 10) {
         G.drewEleven = true;
+        return null;
     } else if (G.decks[ageToDraw].length === 0) {
-        drawAux(G, playerID, ageToDraw + 1);
+        return drawAux(G, playerID, ageToDraw + 1);
     } else {
+        return G.decks[ageToDraw].pop();
+    }
+}
+
+// Draw to hand.
+function drawAux(G, playerID, ageToDraw) {
+    let drawnCard = drawAuxAndReturn(G, playerID, ageToDraw);
+    if (drawnCard !== null) {
         G.log.push("Player " + playerID + " draws a " + ageToDraw.toString());
-        G[playerID].hand.push(G.decks[ageToDraw].pop());
+        G[playerID].hand.push();
     }
 }
 
@@ -452,7 +486,7 @@ function stripSecrets(G, ctx, playerID) {
         };
         if (ctx.phase === 'startPhase') {
             gRedacted[otherPlayerID].board = emptyBoard();
-            gRedacted.log= [];
+            gRedacted.log = [];
         }
     });
     return gRedacted;
