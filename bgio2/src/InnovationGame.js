@@ -263,7 +263,7 @@ function drawAux(G, playerID, ageToDraw) {
     let drawnCard = drawAuxAndReturn(G, playerID, ageToDraw);
     if (drawnCard !== null) {
         G.log.push("Player " + playerID + " draws a " + ageToDraw.toString());
-        G[playerID].hand.push();
+        G[playerID].hand.push(drawnCard);
     }
 }
 
