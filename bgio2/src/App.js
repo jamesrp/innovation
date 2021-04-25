@@ -40,7 +40,7 @@ function MainPage() {
     return <div>
         <p>Expected one of two URL formats:</p>
         <p><a href="/lobby">/lobby</a></p>
-        <p><a href="/match/gameName/i/2/0">/match/gameName/matchID/numPlayers/playerID</a></p>
+        <p><a href="/match/i/matchId/2/0">/match/gameName/matchID/numPlayers/playerID</a></p>
         <p>gameName can be: l, i, g, e => lostcities, innovation, glorytorome, elements</p>
         <p>playerID can be: 0, ..., numPlayers-1</p>
         <p>Note: numPlayers only supported for glory to rome currently. Other games force it to 2.</p>
