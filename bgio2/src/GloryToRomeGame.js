@@ -138,6 +138,12 @@ function Play(G, ctx, id) {
         return INVALID_MOVE;
     }
     let card = removed[0];
+    if (ctx.phase === 'follow') {
+        let suitLed = G.public[G.turnOrderStateMachine.leader].cardPlayed[0];
+        if (card.name !== suitLed.name) {
+            return INVALID_MOVE;
+        }
+    }
 
     G.public[ctx.playerID].cardPlayed = Array(1).fill(card);
     G.numToResolve += 1;
@@ -214,42 +220,44 @@ function cleanupCardsPlayed(G, ctx) {
 }
 
 function mySetup(ctx) {
-    let numCards = ctx.numPlayers * 3;
+    let numCards = ctx.numPlayers * 8;
     let merchant = {name: "merchant"};
     let laborer = {name: "laborer"};
-    let craftsman = {name: "craftsman"};
+    let legionary = {name: "legionary"};
     let deck = Array(numCards).fill(merchant)
         .concat(Array(numCards).fill(laborer))
-        .concat(Array(numCards).fill(craftsman));
+        .concat(Array(numCards).fill(legionary));
+    let deckShuffled = ctx.random.Shuffle(deck);
+    let leader = ctx.random.Shuffle(ctx.playOrder.slice())[0];
     let G = {
         turnOrderStateMachine: {
-            leader: "0",
+            leader: leader,
             toFollow: [],
             toResolve: [],
         },
         stack: [],
         public: {
-            pool: Array(1).fill(merchant).concat(Array(1).fill(laborer)),
+            pool: [],
         },
-        secret: {
-            deck: ctx.random.Shuffle(deck),
-        },
+        secret: {},
     };
     for (let i = 0; i < ctx.numPlayers; i++) {
         let p = i.toString();
-        let hand = Array(1).fill(merchant).concat(Array(1).fill(laborer));
+        let hand = [];
+        for (let j = 0; j < 4; j++) {
+            hand.push(deckShuffled.pop());
+        }
+        G.public.pool.push(deckShuffled.pop());
         G[p] = {
             hand: hand,
         };
         G.public[p] = {
-            stockpile: Array(0),
-            vault: Array(0),
-            cardPlayed: Array(0),
+            stockpile: [],
+            vault: [],
+            cardPlayed: [],
         };
-
     }
-    // TODO: actually randomize the hands as part of the deck.
-    // TODO: the number of cards in opp hand should be public.
+    G.secret.deck = deckShuffled;
     return G;
 }
 
@@ -285,4 +293,3 @@ function playOrderAfterMe(ctx, playerID) {
     output.reverse();
     return output;
 }
-

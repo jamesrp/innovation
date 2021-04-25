@@ -65,8 +65,8 @@ export class GloryToRomeBoard extends React.Component {
                     <li onClick={() => this.props.moves.Think(this.props.playerID)}>
                         Think
                     </li>
-                    <li onClick={() => this.props.moves.EndResolveCardPlayed(this.props.playerID)}>
-                        EndResolveCardPlayed
+                    <li onClick={() => this.props.moves.Pass()}>
+                        Pass
                     </li>
                 </ul>
                 <h4>On the Stack</h4>
