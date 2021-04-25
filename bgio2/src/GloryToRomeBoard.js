@@ -43,14 +43,14 @@ export class GloryToRomeBoard extends React.Component {
 
         // is there a bug rendering the stockpile?
         let stockpile = [];
-        this.props.G.public[this.props.playerID].stockpile.forEach((element, index, array) => pool.push(
+        this.props.G.public[this.props.playerID].stockpile.forEach((element, index, array) => stockpile.push(
             <li onClick={() => this.props.moves.ResolveCardPlayed("stockpile", index, this.props.playerID)}>
                 {element.name}
             </li>
         ))
 
         let vault = [];
-        this.props.G.public[this.props.playerID].vault.forEach((element, index, array) => pool.push(
+        this.props.G.public[this.props.playerID].vault.forEach((element, index, array) => vault.push(
             <li onClick={() => this.props.moves.ResolveCardPlayed("vault", index, this.props.playerID)}>
                 {element.name}
             </li>
@@ -58,7 +58,7 @@ export class GloryToRomeBoard extends React.Component {
 
         return (
             <div>
-                <h3> Player {this.props.playerID} board</h3>
+                <h3> Player {this.props.playerID} board - phase: {this.props.ctx.phase}</h3>
                 {message}
                 <h4>Actions</h4>
                 <ul>
