@@ -36,23 +36,23 @@ export class GloryToRomeBoard extends React.Component {
 
         let pool = [];
         this.props.G.public.pool.forEach((element, index, array) => pool.push(
-            <li onClick={() => this.props.moves.ResolveCardPlayed("pool", index, this.props.playerID)}>
-                {element.name}
+            <li onClick={() => this.props.moves.ClickCard(element.id)}>
+                {element.name} - {element.id}
             </li>
         ))
 
         // is there a bug rendering the stockpile?
         let stockpile = [];
         this.props.G.public[this.props.playerID].stockpile.forEach((element, index, array) => stockpile.push(
-            <li onClick={() => this.props.moves.ResolveCardPlayed("stockpile", index, this.props.playerID)}>
-                {element.name}
+            <li onClick={() => this.props.moves.ClickCard(element.id)}>
+                {element.name} - {element.id}
             </li>
         ))
 
         let vault = [];
         this.props.G.public[this.props.playerID].vault.forEach((element, index, array) => vault.push(
-            <li onClick={() => this.props.moves.ResolveCardPlayed("vault", index, this.props.playerID)}>
-                {element.name}
+            <li onClick={() => this.props.moves.ClickCard(element.id)}>
+                {element.name} - {element.id}
             </li>
         ))
 
