@@ -5,6 +5,42 @@ const merchant = "Merchant";
 const laborer = "Laborer";
 const legionary = "Legionary";
 
+const functionsTable = {
+    "giveOneFromHand": (G, playerID, cardID, recipientID, cardType) => {
+        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
+        if (index === -1) {
+            return INVALID_MOVE;
+        }
+        let card = G[playerID].hand[index];
+        if (card.name !== cardType) {
+            return INVALID_MOVE;
+        }
+        G.public[recipientID].stockpile.push(card);
+        G[playerID].hand.splice(index, 1);
+        G.log.push("Player " + playerID + " gives " + card.name + " to player " + recipientID);
+    },
+    "takeOneFromPool": (G, playerID, cardID, cardType) => {
+        let index = G.public.pool.findIndex(element => (element.id === cardID));
+        if (index === -1) {
+            return INVALID_MOVE;
+        }
+        let card = G.public.pool[index];
+        if (card.name !== cardType) {
+            return INVALID_MOVE;
+        }
+        G.public[playerID].stockpile.push(card);
+        G.public.pool.splice(index, 1);
+        G.log.push("Player " + playerID + " takes a " + card.name + " from the stockpile");
+    },
+    "decline": (G, playerID, msg) => {
+        if (msg === "no") {
+            G.log.push("Player " + playerID + " declines");
+            return;
+        }
+        return INVALID_MOVE;
+    },
+};
+
 // TODO: probably worth debugging this in a 3-way w/ remote master and printf debug for now.
 // It seems like thinking passes the turn around correctly, but resolving cards played
 // doesn't work (and the pool looks strange and out of sync between players).
@@ -90,8 +126,8 @@ export const GloryToRome = {
             turn: {
                 moveLimit: 1,
                 order: {
-                    first: (G, ctx) => parseInt(G.stack[G.stack.length - 1].toChoose),
-                    next: (G, ctx) => parseInt(G.stack[G.stack.length - 1].toChoose),
+                    first: (G, ctx) => parseInt(G.stack[G.stack.length - 1].playerToMove),
+                    next: (G, ctx) => parseInt(G.stack[G.stack.length - 1].playerToMove),
                 }
             }
         },
@@ -130,6 +166,7 @@ function Think(G, ctx) {
         G.turnOrderStateMachine.leader = nextPlayer(ctx, G.turnOrderStateMachine.leader, ctx.numPlayers);
     }
     console.log(JSON.stringify(G.turnOrderStateMachine));
+    G.log.push("Player " + ctx.playerID + " thinks");
 }
 
 function Play(G, ctx, id) {
@@ -151,9 +188,11 @@ function Play(G, ctx, id) {
     if (ctx.phase === 'lead') {
         G.turnOrderStateMachine.toFollow = playOrderAfterMe(ctx, ctx.playerID);
         G.turnOrderStateMachine.toResolve = [ctx.playerID];
+        G.log.push("Player " + ctx.playerID + " leads a " + card.name);
     } else {
         G.turnOrderStateMachine.toFollow.pop();
         G.turnOrderStateMachine.toResolve.push(ctx.playerID);
+        G.log.push("Player " + ctx.playerID + " follows a " + card.name);
     }
     console.log(JSON.stringify(G.turnOrderStateMachine));
 }
@@ -161,39 +200,83 @@ function Play(G, ctx, id) {
 // TODO: should this just be ClickMenu("pass")?
 function Pass(G, ctx) {
     G.turnOrderStateMachine.toResolve.pop();
+    G.log.push("Player " + ctx.playerID + " passes");
     console.log(JSON.stringify(G.turnOrderStateMachine));
 }
 
 // Does the effect but leaves the card in cardPlayed
 function ClickCard(G, ctx, id) {
-    let cardPlayed = G.public[ctx.playerID].cardPlayed[0].name;
+    // In stack phase, delegate to stackable methods.
+    if (ctx.phase === 'unwindStack') {
+        let stackable = G.stack[G.stack.length - 1];
+        let otherArgs = stackable.executeWithCardOtherArgs;
+        G.stack.pop();
+        return functionsTable[stackable.executeWithCard](G, ctx.playerID, id, ...otherArgs)
+    }
 
+    // Otherwise, below, we assume we are in phase resolve.
+    let cardPlayed = G.public[ctx.playerID].cardPlayed[0].name;
     let fromZone = [];
     let toZone = [];
     if (cardPlayed === merchant) {
-        console.log(merchant);
         fromZone = G.public[ctx.playerID].stockpile;
         toZone = G.public[ctx.playerID].vault;
     } else if (cardPlayed === laborer) {
-        console.log(laborer);
         fromZone = G.public.pool;
         toZone = G.public[ctx.playerID].stockpile;
+    } else if (cardPlayed === legionary) {
+        fromZone = G[ctx.playerID].hand;
     }
-    console.log(cardPlayed);
-    console.log(JSON.stringify(fromZone));
-    console.log(JSON.stringify(toZone));
 
     let index = fromZone.findIndex(element => (element.id === id));
     if (index === -1) {
         return INVALID_MOVE;
     }
-    toZone.push(fromZone[index]); // TODO push to bottom?
-    fromZone.splice(index, 1);
+    toZone.push(fromZone[index]);
+
+    if (cardPlayed === legionary) {
+        // Legionary puts toZone[0] onto the stack:
+        let cardType = fromZone[index].name;
+        G.stack.push({
+            name: "Legionary take from pool targeting " + cardType,
+            playerToMove: ctx.playerID,
+            executeWithCard: "takeOneFromPool",
+            executeWithCardOtherArgs: [cardType],
+            executeWithMenu: "decline",
+            playerID: ctx.playerID,
+        });
+        playOrderAfterMe(ctx, ctx.playerID).forEach(oppID => G.stack.push({
+            name: oppID + " give 1 " + cardType + " to Legionary or decline",
+            playerToMove: oppID,
+            executeWithCard: "giveOneFromHand",
+            executeWithCardOtherArgs: [ctx.playerID, cardType],
+            executeWithMenu: "decline",
+            playerID: oppID,
+        }));
+        // TODO: make the actual cards move for Legionary - need to have a similar stackables table.
+        // This time probably with additional args - similar to how we will do Demand in innovation -
+        // takeOneFromPool is just laborer again. But giveOneFromHand needs to know the player who
+        // will receive the given card.
+        // Then TODO: wire the stackable moves through to the UI.
+
+    } else {
+        // Merchant and laborer can just do their thing now:
+        fromZone.splice(index, 1);
+    }
     // TODO: when we have clients, instead track moves left and only pop when done.
     G.turnOrderStateMachine.toResolve.pop();
+    G.log.push("Player " + ctx.playerID + " selects " + toZone[0].name);
     console.log(JSON.stringify(G.turnOrderStateMachine));
 }
+
 function ClickMenu(G, ctx, msg) {
+    // In stack phase, delegate to stackable methods.
+    if (ctx.phase === 'unwindStack') {
+        // TODO: we don't currently need extraArgs for menu dispatch - will we ever?
+        let stackable = G.stack[G.stack.length - 1];
+        G.stack.pop();
+        return functionsTable[stackable.executeWithMenu](G, ctx.playerID, msg)
+    }
     return INVALID_MOVE;
 }
 
@@ -264,6 +347,7 @@ function mySetup(ctx) {
             pool: [],
         },
         secret: {},
+        log: [],
     };
     for (let i = 0; i < ctx.numPlayers; i++) {
         let p = i.toString();

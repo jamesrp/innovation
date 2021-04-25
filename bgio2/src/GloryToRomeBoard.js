@@ -18,21 +18,36 @@ export class GloryToRomeBoard extends React.Component {
             message = 'Waiting for opponent to make the next move.';
         }
 
+        let cardPlayed = [];
+        this.props.G.public[this.props.playerID].cardPlayed.forEach((element, index, array) => cardPlayed.push(
+            <span>
+                {element.name}
+            </span>
+        ))
+
         let stack = [];
-        // For cards in hand, these are always Play commands for now.
-        this.props.G.public[this.props.playerID].cardPlayed.forEach((element, index, array) => stack.push(
+        this.props.G.stack.forEach((element, index, array) => stack.push(
             <li>
                 {element.name}
             </li>
         ))
 
         let hand = [];
-        // For cards in hand, these are always Play commands for now.
-        this.props.G[this.props.playerID].hand.forEach((element, index, array) => hand.push(
-            <li onClick={() => this.props.moves.Play(index, this.props.playerID)}>
-                {element.name}
-            </li>
-        ))
+        // For leading/following, Play. Otherwise, ClickCard.
+        if (this.props.ctx.phase === 'lead' || this.props.ctx.phase === 'follow') {
+            this.props.G[this.props.playerID].hand.forEach((element, index, array) => hand.push(
+                <li onClick={() => this.props.moves.Play(index, this.props.playerID)}>
+                    {element.name}
+                </li>
+            ))
+        } else {
+            this.props.G[this.props.playerID].hand.forEach((element, index, array) => hand.push(
+                <li onClick={() => this.props.moves.ClickCard(element.id)}>
+                    {element.name}
+                </li>
+            ))
+        }
+
 
         let pool = [];
         this.props.G.public.pool.forEach((element, index, array) => pool.push(
@@ -41,7 +56,6 @@ export class GloryToRomeBoard extends React.Component {
             </li>
         ))
 
-        // is there a bug rendering the stockpile?
         let stockpile = [];
         this.props.G.public[this.props.playerID].stockpile.forEach((element, index, array) => stockpile.push(
             <li onClick={() => this.props.moves.ClickCard(element.id)}>
@@ -56,6 +70,9 @@ export class GloryToRomeBoard extends React.Component {
             </li>
         ))
 
+        let log = [];
+        this.props.G.log.forEach(elem => log.push(<li>{elem}</li>));
+
         return (
             <div>
                 <h3> Player {this.props.playerID} board - phase: {this.props.ctx.phase}</h3>
@@ -68,8 +85,12 @@ export class GloryToRomeBoard extends React.Component {
                     <li onClick={() => this.props.moves.Pass()}>
                         Pass
                     </li>
+                    <li onClick={() => this.props.moves.ClickMenu("no")}>
+                        Decline
+                    </li>
                 </ul>
-                <h4>On the Stack</h4>
+                <h4>Card led/followed: {cardPlayed}</h4>
+                <h4>The Stack</h4>
                 <ul>{stack}</ul>
                 <h4>My Hand</h4>
                 <ul>{hand}</ul>
@@ -86,6 +107,8 @@ export class GloryToRomeBoard extends React.Component {
                 {
                     winner
                 }
+                <h4>Log</h4>
+                <ul>{log}</ul>
             </div>
         );
     }
