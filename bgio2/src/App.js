@@ -33,14 +33,6 @@ const InnovationClient = Client({
     debug: false,
 });
 
-const GloryToRomeClient = Client({
-    game: GloryToRome,
-    board: GloryToRomeBoard,
-    multiplayer: SocketIO({server: 'localhost:8000'}),
-    numPlayers: 3,
-    debug: false,
-});
-
 // A helper page with some links.
 // localhost:3000/lobby/gameName
 // localhost:3000/match/gameName/matchID/playerID
@@ -48,7 +40,10 @@ function MainPage() {
     return <div>
         <p>Expected one of two URL formats:</p>
         <p><a href="/lobby">/lobby</a></p>
-        <p><a href="/match/gameName/matchID/0">/match/gameName/matchID/0</a> (trailing 0 is playerID)</p>
+        <p><a href="/match/gameName/i/2/0">/match/gameName/matchID/numPlayers/playerID</a></p>
+        <p>gameName can be: l, i, g, e => lostcities, innovation, glorytorome, elements</p>
+        <p>playerID can be: 0, ..., numPlayers-1</p>
+        <p>Note: numPlayers only supported for glory to rome currently. Other games force it to 2.</p>
     </div>;
 }
 
@@ -65,8 +60,17 @@ function MakeLobby() {
     />;
 }
 
-function MakeClient(game, match, player) {
+function MakeClient(game, match, player, numPlayers) {
     let myClient = <p>game not found!</p>;
+
+    // numPlayers only supported for GTR right now.
+    let GloryToRomeClient = Client({
+        game: GloryToRome,
+        board: GloryToRomeBoard,
+        multiplayer: SocketIO({server: 'localhost:8000'}),
+        numPlayers: numPlayers,
+        debug: false,
+    });
     if (game === "lostcities") {
         myClient = <LostCitiesClient playerID={player} matchID={match}/>;
     } else if (game === "innovation") {
@@ -101,8 +105,9 @@ function RouteRequest() {
             game = "elements";
         }
         let match = game + "/" + pathArray[3];
-        let player = pathArray[4];
-        return MakeClient(game, match, player);
+        let numPlayers = parseInt(pathArray[4], 10)
+        let player = pathArray[5];
+        return MakeClient(game, match, player, numPlayers);
     }
     if (lobbyOrMatch === "lobby") {
         return MakeLobby();
