@@ -247,12 +247,12 @@ function drawMultiple(G, playerID, age, num) {
 // TODO: want to use typescript... ageToDraw is an int.
 function drawAuxAndReturn(G, playerID, ageToDraw) {
     if (ageToDraw <= 0) {
-        return drawAux(G, playerID, 1);
+        return drawAuxAndReturn(G, playerID, 1);
     } else if (ageToDraw > 10) {
         G.drewEleven = true;
         return null;
     } else if (G.decks[ageToDraw].length === 0) {
-        return drawAux(G, playerID, ageToDraw + 1);
+        return drawAuxAndReturn(G, playerID, ageToDraw + 1);
     } else {
         return G.decks[ageToDraw].pop();
     }
