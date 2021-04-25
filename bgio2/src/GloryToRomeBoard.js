@@ -63,6 +63,13 @@ export class GloryToRomeBoard extends React.Component {
             </li>
         ))
 
+        let clients = [];
+        this.props.G.public[this.props.playerID].clients.forEach((element, index, array) => clients.push(
+            <li onClick={() => this.props.moves.ClickCard(element.id)}>
+                {element.name} - {element.id}
+            </li>
+        ))
+
         let vault = [];
         this.props.G.public[this.props.playerID].vault.forEach((element, index, array) => vault.push(
             <li onClick={() => this.props.moves.ClickCard(element.id)}>
@@ -94,6 +101,8 @@ export class GloryToRomeBoard extends React.Component {
                 <ul>{stack}</ul>
                 <h4>My Hand</h4>
                 <ul>{hand}</ul>
+                <h4>My Clients</h4>
+                <ul>{clients}</ul>
                 <h4>My Stockpile</h4>
                 <ul>{stockpile}</ul>
                 <h4>My Vault</h4>

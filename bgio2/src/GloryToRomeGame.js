@@ -4,6 +4,7 @@ import {PlayerView} from 'boardgame.io/core';
 const merchant = "Merchant";
 const laborer = "Laborer";
 const legionary = "Legionary";
+const patron = "Patron";
 
 const functionsTable = {
     "giveOneFromHand": (G, playerID, cardID, recipientID, cardType) => {
@@ -224,6 +225,9 @@ function ClickCard(G, ctx, id) {
     } else if (cardPlayed === laborer) {
         fromZone = G.public.pool;
         toZone = G.public[ctx.playerID].stockpile;
+    } else if (cardPlayed === patron) {
+        fromZone = G.public.pool;
+        toZone = G.public[ctx.playerID].clients;
     } else if (cardPlayed === legionary) {
         fromZone = G[ctx.playerID].hand;
     }
@@ -265,7 +269,7 @@ function ClickCard(G, ctx, id) {
     }
     // TODO: when we have clients, instead track moves left and only pop when done.
     G.turnOrderStateMachine.toResolve.pop();
-    G.log.push("Player " + ctx.playerID + " selects " + toZone[0].name);
+    G.log.push("Player " + ctx.playerID + " selects " + toZone[toZone.length - 1].name);
     console.log(JSON.stringify(G.turnOrderStateMachine));
 }
 
@@ -324,11 +328,11 @@ function loadCards(ctx) {
         //     color: "grey",
         //     name: "Architect",
         // });
-        // cards.push({
-        //     id: ctx.random.Number().toString(),
-        //     color: "purple",
-        //     name: "Patron",
-        // });
+        cards.push({
+            id: ctx.random.Number().toString(),
+            color: "purple",
+            name: patron,
+        });
     }
     return ctx.random.Shuffle(cards);
 }
@@ -349,10 +353,11 @@ function mySetup(ctx) {
         secret: {},
         log: [],
     };
+    let startingHandSize = 15; // For debugging only - change to 4 for actual play.
     for (let i = 0; i < ctx.numPlayers; i++) {
         let p = i.toString();
         let hand = [];
-        for (let j = 0; j < 4; j++) {
+        for (let j = 0; j < startingHandSize; j++) {
             hand.push(deck.pop());
         }
         G.public.pool.push(deck.pop());
@@ -362,6 +367,7 @@ function mySetup(ctx) {
         G.public[p] = {
             stockpile: [],
             vault: [],
+            clients: [],
             cardPlayed: [],
         };
     }
