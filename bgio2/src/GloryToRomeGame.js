@@ -260,8 +260,13 @@ function ClickCard(G, ctx, id) {
             playerID: oppID,
         }));
     } else {
-        // Merchant and laborer can just do their thing now:
+        // Merchant/laborer/patron can just do their thing now:
         fromZone.splice(index, 1);
+
+        // For merchant/patron, check influence:
+        if ((cardPlayed === merchant || cardPlayed === patron) && toZone.length > G.public[ctx.playerID].influence) {
+            return INVALID_MOVE;
+        }
     }
 
     // TODO: legionary clients need special treatment.
@@ -370,6 +375,7 @@ function mySetup(ctx) {
         };
         G.turnOrderStateMachine.resolveMovesSpent[p] = 0;
         G.public[p] = {
+            influence: 2,
             stockpile: [],
             vault: [],
             clients: [],
