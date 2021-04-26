@@ -1,6 +1,8 @@
 import {INVALID_MOVE} from 'boardgame.io/core';
 import {generateDecks, stackablesTable} from './InnovationData';
 
+require('core-js/stable')
+
 export const Innovation = {
     name: 'innovation',
     minPlayers: 2,
