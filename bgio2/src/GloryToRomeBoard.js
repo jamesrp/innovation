@@ -69,6 +69,11 @@ export class GloryToRomeBoard extends React.Component {
                 {element.name} - {element.id}
             </li>
         ))
+        this.props.G.public[this.props.playerID].clientsTapped.forEach((element, index, array) => clients.push(
+            <li onClick={() => this.props.moves.ClickCard(element.id)}>
+                {element.name} - {element.id} [tapped]
+            </li>
+        ))
 
         let vault = [];
         this.props.G.public[this.props.playerID].vault.forEach((element, index, array) => vault.push(

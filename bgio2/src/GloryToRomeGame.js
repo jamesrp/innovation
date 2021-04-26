@@ -64,7 +64,9 @@ export const GloryToRome = {
             },
             onBegin: (G, ctx) => {
                 G.turnOrderStateMachine.leader = nextPlayer(ctx, G.turnOrderStateMachine.leader, ctx.numPlayers);
+                ctx.playOrder.slice().forEach(p => G.turnOrderStateMachine.resolveMovesSpent[p] = 0);
                 cleanupCardsPlayed(G, ctx);
+                untapClients(G, ctx);
             },
             turn: {
                 moveLimit: 1,
@@ -84,7 +86,7 @@ export const GloryToRome = {
             },
             onEnd: (G, ctx) => {
                 // We build this in reverse order in follow(); reverse it before handing to resolve.
-                G.turnOrderStateMachine.toResolve.reverse();
+                // G.turnOrderStateMachine.toResolve.reverse();
             },
             turn: {
                 moveLimit: 1,
@@ -100,7 +102,9 @@ export const GloryToRome = {
                 if (G.stack.length > 0) {
                     return {next: 'unwindStack'};
                 }
-                if (G.turnOrderStateMachine.toResolve.length === 0) {
+                let p = nextToResolve(G);
+                // TODO: wire in nextToResolve, and make sure it is allowed to mutate - if not, find another way.
+                if (p === null) {
                     return {next: 'lead'};
                 }
                 return false;
@@ -108,8 +112,8 @@ export const GloryToRome = {
             turn: {
                 moveLimit: 1,
                 order: {
-                    first: (G, ctx) => parseInt(G.turnOrderStateMachine.toResolve[G.turnOrderStateMachine.toResolve.length - 1]),
-                    next: (G, ctx) => parseInt(G.turnOrderStateMachine.toResolve[G.turnOrderStateMachine.toResolve.length - 1]),
+                    first: (G, ctx) => nextToResolve(G),
+                    next: (G, ctx) => nextToResolve(G),
                 }
             }
         },
@@ -117,7 +121,8 @@ export const GloryToRome = {
             moves: {ClickCard, ClickMenu, Pass},
             endIf: (G, ctx) => {
                 if (G.stack.length === 0) {
-                    if (G.turnOrderStateMachine.toResolve.length === 0) {
+                    let p = nextToResolve(G);
+                    if (p === null) {
                         return {next: 'lead'};
                     }
                     return {next: 'resolve'};
@@ -160,8 +165,6 @@ function Think(G, ctx) {
 
     if (ctx.phase === 'follow') {
         G.turnOrderStateMachine.toFollow.pop();
-        // TODO: if we have clients, also:
-        // G.turnOrderStateMachine.toResolve.push(ctx.playerID);
     } else {
         // If leader thinks, we don't call onBegin again, so modify leader here.
         G.turnOrderStateMachine.leader = nextPlayer(ctx, G.turnOrderStateMachine.leader, ctx.numPlayers);
@@ -188,11 +191,10 @@ function Play(G, ctx, id) {
 
     if (ctx.phase === 'lead') {
         G.turnOrderStateMachine.toFollow = playOrderAfterMe(ctx, ctx.playerID);
-        G.turnOrderStateMachine.toResolve = [ctx.playerID];
+        G.turnOrderStateMachine.toResolve = playOrderAfterMe(ctx, ctx.playerID).concat([ctx.playerID]);
         G.log.push("Player " + ctx.playerID + " leads a " + card.name);
     } else {
         G.turnOrderStateMachine.toFollow.pop();
-        G.turnOrderStateMachine.toResolve.push(ctx.playerID);
         G.log.push("Player " + ctx.playerID + " follows a " + card.name);
     }
     console.log(JSON.stringify(G.turnOrderStateMachine));
@@ -200,7 +202,7 @@ function Play(G, ctx, id) {
 
 // TODO: should this just be ClickMenu("pass")?
 function Pass(G, ctx) {
-    G.turnOrderStateMachine.toResolve.pop();
+    G.turnOrderStateMachine.resolveMovesSpent[ctx.playerID] += 1000000;
     G.log.push("Player " + ctx.playerID + " passes");
     console.log(JSON.stringify(G.turnOrderStateMachine));
 }
@@ -216,7 +218,7 @@ function ClickCard(G, ctx, id) {
     }
 
     // Otherwise, below, we assume we are in phase resolve.
-    let cardPlayed = G.public[ctx.playerID].cardPlayed[0].name;
+    let cardPlayed = G.public[G.turnOrderStateMachine.leader].cardPlayed[0].name;
     let fromZone = [];
     let toZone = [];
     if (cardPlayed === merchant) {
@@ -227,7 +229,7 @@ function ClickCard(G, ctx, id) {
         toZone = G.public[ctx.playerID].stockpile;
     } else if (cardPlayed === patron) {
         fromZone = G.public.pool;
-        toZone = G.public[ctx.playerID].clients;
+        toZone = G.public[ctx.playerID].clientsTapped;
     } else if (cardPlayed === legionary) {
         fromZone = G[ctx.playerID].hand;
     }
@@ -257,18 +259,13 @@ function ClickCard(G, ctx, id) {
             executeWithMenu: "decline",
             playerID: oppID,
         }));
-        // TODO: make the actual cards move for Legionary - need to have a similar stackables table.
-        // This time probably with additional args - similar to how we will do Demand in innovation -
-        // takeOneFromPool is just laborer again. But giveOneFromHand needs to know the player who
-        // will receive the given card.
-        // Then TODO: wire the stackable moves through to the UI.
-
     } else {
         // Merchant and laborer can just do their thing now:
         fromZone.splice(index, 1);
     }
-    // TODO: when we have clients, instead track moves left and only pop when done.
-    G.turnOrderStateMachine.toResolve.pop();
+
+    // TODO: legionary clients need special treatment.
+    G.turnOrderStateMachine.resolveMovesSpent[ctx.playerID] += 1;
     G.log.push("Player " + ctx.playerID + " selects " + toZone[toZone.length - 1].name);
     console.log(JSON.stringify(G.turnOrderStateMachine));
 }
@@ -285,7 +282,6 @@ function ClickMenu(G, ctx, msg) {
 }
 
 function cleanupCardsPlayed(G, ctx) {
-    console.log("cleanupCardsPlayed");
     let players = ctx.playOrder.slice();
     players.forEach(playerID => {
         if (G.public[playerID].cardPlayed.length === 0) {
@@ -293,7 +289,14 @@ function cleanupCardsPlayed(G, ctx) {
         }
         G.public.pool.push(G.public[playerID].cardPlayed.pop());
     });
-    console.log(JSON.stringify(G.turnOrderStateMachine));
+}
+
+function untapClients(G, ctx) {
+    let players = ctx.playOrder.slice();
+    players.forEach(playerID => {
+        G.public[playerID].clients = G.public[playerID].clients.concat(G.public[playerID].clientsTapped);
+        G.public[playerID].clientsTapped = [];
+    });
 }
 
 function loadCards(ctx) {
@@ -345,6 +348,7 @@ function mySetup(ctx) {
             leader: leader,
             toFollow: [],
             toResolve: [],
+            resolveMovesSpent: {},
         },
         stack: [],
         public: {
@@ -364,10 +368,12 @@ function mySetup(ctx) {
         G[p] = {
             hand: hand,
         };
+        G.turnOrderStateMachine.resolveMovesSpent[p] = 0;
         G.public[p] = {
             stockpile: [],
             vault: [],
             clients: [],
+            clientsTapped: [],
             cardPlayed: [],
         };
     }
@@ -406,4 +412,21 @@ function playOrderAfterMe(ctx, playerID) {
     }
     output.reverse();
     return output;
+}
+
+function nextToResolve(G) {
+    let resolveOrder = G.turnOrderStateMachine.toResolve.slice();
+    resolveOrder.reverse();
+    for (const playerID of resolveOrder) {
+        let totalActions = G.public[playerID].cardPlayed.length;
+        G.public[playerID].clients.forEach(x => {
+            if (x.name === G.public[G.turnOrderStateMachine.leader].cardPlayed[0].name) {
+                totalActions += 1;
+            }
+        })
+        if (totalActions > G.turnOrderStateMachine.resolveMovesSpent[playerID]) {
+            return parseInt(playerID);
+        }
+    }
+    return null;
 }
