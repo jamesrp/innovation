@@ -5,6 +5,8 @@ const merchant = "Merchant";
 const laborer = "Laborer";
 const legionary = "Legionary";
 const patron = "Patron";
+const craftsman = "Craftsman";
+const architect = "Architect";
 
 const functionsTable = {
     "giveOneFromHand": (G, playerID, cardID, recipientID, cardType) => {
@@ -13,12 +15,12 @@ const functionsTable = {
             return INVALID_MOVE;
         }
         let card = G[playerID].hand[index];
-        if (card.name !== cardType) {
+        if (card.type !== cardType) {
             return INVALID_MOVE;
         }
         G.public[recipientID].stockpile.push(card);
         G[playerID].hand.splice(index, 1);
-        G.log.push("Player " + playerID + " gives " + card.name + " to player " + recipientID);
+        G.log.push("Player " + playerID + " gives " + card.type + " to player " + recipientID);
     },
     "takeOneFromPool": (G, playerID, cardID, cardType) => {
         let index = G.public.pool.findIndex(element => (element.id === cardID));
@@ -26,12 +28,12 @@ const functionsTable = {
             return INVALID_MOVE;
         }
         let card = G.public.pool[index];
-        if (card.name !== cardType) {
+        if (card.type !== cardType) {
             return INVALID_MOVE;
         }
         G.public[playerID].stockpile.push(card);
         G.public.pool.splice(index, 1);
-        G.log.push("Player " + playerID + " takes a " + card.name + " from the stockpile");
+        G.log.push("Player " + playerID + " takes a " + card.type + " from the stockpile");
     },
     "decline": (G, playerID, msg) => {
         if (msg === "no") {
@@ -181,7 +183,7 @@ function Play(G, ctx, id) {
     let card = removed[0];
     if (ctx.phase === 'follow') {
         let suitLed = G.public[G.turnOrderStateMachine.leader].cardPlayed[0];
-        if (card.name !== suitLed.name) {
+        if (card.type !== suitLed.type) {
             return INVALID_MOVE;
         }
     }
@@ -192,10 +194,10 @@ function Play(G, ctx, id) {
     if (ctx.phase === 'lead') {
         G.turnOrderStateMachine.toFollow = playOrderAfterMe(ctx, ctx.playerID);
         G.turnOrderStateMachine.toResolve = playOrderAfterMe(ctx, ctx.playerID).concat([ctx.playerID]);
-        G.log.push("Player " + ctx.playerID + " leads a " + card.name);
+        G.log.push("Player " + ctx.playerID + " leads a " + card.type);
     } else {
         G.turnOrderStateMachine.toFollow.pop();
-        G.log.push("Player " + ctx.playerID + " follows a " + card.name);
+        G.log.push("Player " + ctx.playerID + " follows a " + card.type);
     }
     console.log(JSON.stringify(G.turnOrderStateMachine));
 }
@@ -218,7 +220,8 @@ function ClickCard(G, ctx, id) {
     }
 
     // Otherwise, below, we assume we are in phase resolve.
-    let cardPlayed = G.public[G.turnOrderStateMachine.leader].cardPlayed[0].name;
+    G.turnOrderStateMachine.resolveMovesSpent[ctx.playerID] += 1;
+    let cardPlayed = G.public[G.turnOrderStateMachine.leader].cardPlayed[0].type;
     let fromZone = [];
     let toZone = [];
     if (cardPlayed === merchant) {
@@ -234,6 +237,12 @@ function ClickCard(G, ctx, id) {
         fromZone = G[ctx.playerID].hand;
     }
 
+    if (cardPlayed === architect || cardPlayed === craftsman) {
+        // TODO: we don't know how to fill buildings yet.
+        // Maybe do this with drag/drop?
+        return startBuilding(G, ctx.playerID, id);
+    }
+
     let index = fromZone.findIndex(element => (element.id === id));
     if (index === -1) {
         return INVALID_MOVE;
@@ -241,8 +250,10 @@ function ClickCard(G, ctx, id) {
     toZone.push(fromZone[index]);
 
     if (cardPlayed === legionary) {
+        // TODO: legionary clients need special treatment.
+        G.turnOrderStateMachine.resolveMovesSpent[ctx.playerID] += 1000;
         // Legionary puts toZone[0] onto the stack:
-        let cardType = fromZone[index].name;
+        let cardType = fromZone[index].type;
         G.stack.push({
             name: "Legionary take from pool targeting " + cardType,
             playerToMove: ctx.playerID,
@@ -269,10 +280,20 @@ function ClickCard(G, ctx, id) {
         }
     }
 
-    // TODO: legionary clients need special treatment.
-    G.turnOrderStateMachine.resolveMovesSpent[ctx.playerID] += 1;
     G.log.push("Player " + ctx.playerID + " selects " + toZone[toZone.length - 1].name);
     console.log(JSON.stringify(G.turnOrderStateMachine));
+}
+
+function startBuilding(G, playerID, id) {
+    let index = G[playerID].hand.findIndex(element => (element.id === id));
+    if (index === -1) {
+        return INVALID_MOVE;
+    }
+    G.public[playerID].buildings.push({
+        card: G[playerID].hand.splice(index, 1)[0],
+        material: [],
+        completed: false,
+    })
 }
 
 function ClickMenu(G, ctx, msg) {
@@ -311,35 +332,44 @@ function loadCards(ctx) {
         cards.push({
             id: ctx.random.Number().toString(),
             color: "blue",
-            name: merchant,
+            name: "Sewer/Merchant",
+            type: merchant,
             points: 3,
         });
         cards.push({
             id: ctx.random.Number().toString(),
             color: "orange",
-            name: laborer,
+            name: "Insula/Laborer",
+            type: laborer,
             points: 1,
         });
         cards.push({
             id: ctx.random.Number().toString(),
             color: "red",
-            name: legionary,
+            name: "School/Legionary",
+            type: legionary,
             points: 2,
         });
-        // cards.push({
-        //     id: ctx.random.Number().toString(),
-        //     color: "green",
-        //     name: "Craftsman",
-        // });
-        // cards.push({
-        //     id: ctx.random.Number().toString(),
-        //     color: "grey",
-        //     name: "Architect",
-        // });
+        cards.push({
+            id: ctx.random.Number().toString(),
+            color: "green",
+            name: "Dock/Craftsman",
+            type: craftsman,
+            points: 1,
+        });
+        cards.push({
+            id: ctx.random.Number().toString(),
+            color: "grey",
+            name: "Walls/Architect",
+            type: architect,
+            points: 2,
+        });
         cards.push({
             id: ctx.random.Number().toString(),
             color: "purple",
-            name: patron,
+            name: "Forum/Patron",
+            type: patron,
+            points: 3,
         });
     }
     return ctx.random.Shuffle(cards);
@@ -376,6 +406,7 @@ function mySetup(ctx) {
         G.turnOrderStateMachine.resolveMovesSpent[p] = 0;
         G.public[p] = {
             influence: 2,
+            buildings: [],
             stockpile: [],
             vault: [],
             clients: [],
@@ -426,7 +457,7 @@ function nextToResolve(G) {
     for (const playerID of resolveOrder) {
         let totalActions = G.public[playerID].cardPlayed.length;
         G.public[playerID].clients.forEach(x => {
-            if (x.name === G.public[G.turnOrderStateMachine.leader].cardPlayed[0].name) {
+            if (x.type === G.public[G.turnOrderStateMachine.leader].cardPlayed[0].type) {
                 totalActions += 1;
             }
         })

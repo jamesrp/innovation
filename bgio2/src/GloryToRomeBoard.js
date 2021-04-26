@@ -37,13 +37,13 @@ export class GloryToRomeBoard extends React.Component {
         if (this.props.ctx.phase === 'lead' || this.props.ctx.phase === 'follow') {
             this.props.G[this.props.playerID].hand.forEach((element, index, array) => hand.push(
                 <li onClick={() => this.props.moves.Play(index, this.props.playerID)}>
-                    {element.name}
+                    {element.name} - {element.id}
                 </li>
             ))
         } else {
             this.props.G[this.props.playerID].hand.forEach((element, index, array) => hand.push(
                 <li onClick={() => this.props.moves.ClickCard(element.id)}>
-                    {element.name}
+                    {element.name} - {element.id}
                 </li>
             ))
         }
@@ -74,6 +74,25 @@ export class GloryToRomeBoard extends React.Component {
                 {element.name} - {element.id} [tapped]
             </li>
         ))
+
+        let buildings = [];
+        this.props.G.public[this.props.playerID].buildings.forEach(element => {
+            let card = element.card;
+            if (element.completed) {
+                buildings.push(
+                    <li onClick={() => this.props.moves.ClickCard(element.id)}>
+                        {card.name} - {card.id}
+                    </li>
+                )
+            } else {
+                buildings.push(
+                    <li onClick={() => this.props.moves.ClickCard(element.id)}>
+                        {card.name} - {card.id} [{element.material.length} / {card.points}]
+                    </li>
+                )
+            }
+
+        })
 
         let vault = [];
         this.props.G.public[this.props.playerID].vault.forEach((element, index, array) => vault.push(
@@ -108,6 +127,8 @@ export class GloryToRomeBoard extends React.Component {
                 <ul>{hand}</ul>
                 <h4>My Clients</h4>
                 <ul>{clients}</ul>
+                <h4>My Buildings</h4>
+                <ul>{buildings}</ul>
                 <h4>My Stockpile</h4>
                 <ul>{stockpile}</ul>
                 <h4>My Vault</h4>
