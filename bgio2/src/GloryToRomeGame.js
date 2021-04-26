@@ -289,8 +289,14 @@ function startBuilding(G, playerID, id) {
     if (index === -1) {
         return INVALID_MOVE;
     }
+    let card = G[playerID].hand.splice(index, 1)[0];
+    let existingIndex = G.public[playerID].buildings.findIndex(bldg => (bldg.card.name === card.name));
+    if (existingIndex !== -1) {
+        // Can't construct two copies of same building.
+        return INVALID_MOVE;
+    }
     G.public[playerID].buildings.push({
-        card: G[playerID].hand.splice(index, 1)[0],
+        card: card,
         material: [],
         completed: false,
     })
