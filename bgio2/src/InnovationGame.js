@@ -126,6 +126,15 @@ const functionsTable = {
         }
         G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
     },
+    "meldLowestAndDrawAOne": (G, playerID, cardID) => {
+        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
+        if (index === -1) {
+            return INVALID_MOVE;
+        }
+
+        meldCard(G, playerID, cardID);
+        drawMultiple(G, playerID, 1, 1);
+    },
     "mayDrawATen": (G, playerID, msg) => {
         if (msg === "no") {
             G.log.push("Player " + playerID + " declines to draw a 10");
@@ -246,6 +255,18 @@ function drawMultiple(G, playerID, age, num) {
     }
 }
 
+function meldCard(G, playerID, id) {
+    let index = G[playerID].hand.findIndex(element => (element.id === id));
+    if (index === -1) {
+        return INVALID_MOVE;
+    }
+    let name = G[playerID].hand[index].name;
+    let color = G[playerID].hand[index].color;
+    G[playerID].board[color].push(G[playerID].hand[index]);
+    G[playerID].hand.splice(index, 1);
+    G.log.push("Player " + playerID + " melds " + name);
+}
+
 // TODO: want to use typescript... ageToDraw is an int.
 function drawAuxAndReturn(G, playerID, ageToDraw) {
     if (ageToDraw <= 0) {
@@ -328,15 +349,7 @@ function getScore(G, playerID) {
 }
 
 function MeldAction(G, ctx, id) {
-    let index = G[ctx.playerID].hand.findIndex(element => (element.id === id));
-    if (index === -1) {
-        return INVALID_MOVE;
-    }
-    let name = G[ctx.playerID].hand[index].name;
-    let color = G[ctx.playerID].hand[index].color;
-    G[ctx.playerID].board[color].push(G[ctx.playerID].hand[index]);
-    G[ctx.playerID].hand.splice(index, 1);
-    G.log.push("Player " + ctx.playerID + " melds " + name);
+    meldCard(G, ctx.playerID, id);
     if (ctx.phase === 'startPhase') {
         G.numDoneOpening += 1;
     } else {
