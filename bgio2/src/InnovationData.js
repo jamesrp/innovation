@@ -12,6 +12,15 @@ export function generateDecks(ctx) {
     return decks;
 }
 
+// TODO(maxnelso): Probably want to move this to another file
+function getMinAge(G, playerID) {
+  if (G[playerID].hand.length == 0) {
+    return 0;
+  }
+
+  return G[playerID].hand.sort((a, b) => a.age <= b.age)[0];
+}
+
 function loadCards(ctx) {
     let multiplicity = 3;
     let cards = Array(0);
@@ -77,6 +86,17 @@ function loadCards(ctx) {
                 mainSymbol: "leaf",
                 symbols: ["leaf", "", "", "hex", "leaf", "leaf"],
             });
+            cards.push({
+                id: ctx.random.Number().toString(),
+                color: "yellow",
+                age: age,
+                name: "Domestication",
+                dogmasEnglish: ["Meld the lowest card in your hand. Draw a 1."],
+                dogmasFunction: ["meldLowestAndDrawAOne"],
+                mainSymbol: "castle",
+                symbols: ["castle", "", "", "crown", "hex", "castle"],
+            });
+
         }
     }
     return cards;
@@ -139,4 +159,13 @@ export const stackablesTable = {
         // TODO: if player has no hand make it a noop.
         playerID: playerID,
     }),
+    "meldLowestAndDrawAOne": (G, playerID) => ({
+        name: "meldLowestAndDrawAOne",
+        playerToMove: playerID,
+        executeWithCard: "meldLowestAndDrawAOne",
+        cardOptions: G[playerID].hand.filter(card => card.age == getMinAge(G, playerID)),
+        // TODO: if player has no hand make it a noop.
+        playerID: playerID,
+    }),
+
 }
