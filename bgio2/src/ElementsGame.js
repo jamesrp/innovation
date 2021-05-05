@@ -2,6 +2,13 @@ import {INVALID_MOVE, PlayerView} from 'boardgame.io/core';
 
 import {sumArray} from './common';
 
+// TODO:
+// 1) Mark the last card to have moved (anywhere) and highlight it with a blue outline.
+// 2) Make the game reset itself except for a global player score. Then actual victory is when score == 6.
+// 3) Make the 6s have a little red "DISCARD" button underneath them.
+// 4) Make the top card on the table have a little "DRAW" button underneath it.
+// 5) Randomize initial first player. Then alternate for the individual games of a match.
+
 export const Elements = {
     name: 'elements',
     minPlayers: 2,
@@ -54,7 +61,6 @@ function Discard(G, ctx) {
 }
 
 function Knock(G, ctx) {
-    // TODO: check victory. If tied, knocker loses. Winner gets 2 points.
     let tableSum = G.table.reduce((x, y) => x + y);
     let playerSums = {
         "0": sumArray(G["0"].hand) + sumArray(G.playerPiles["0"]),
