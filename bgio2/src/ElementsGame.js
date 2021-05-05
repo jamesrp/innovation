@@ -7,7 +7,7 @@ import {sumArray} from './common';
 // 2) Make the game reset itself except for a global player score. Then actual victory is when score == 6.
 // 3) Make the 6s have a little red "DISCARD" button underneath them.
 // 4) Make the top card on the table have a little "DRAW" button underneath it.
-// 5) Randomize initial first player. Then alternate for the individual games of a match.
+// 5) Alternate first player for the individual games of a match.
 
 export const Elements = {
     name: 'elements',
@@ -17,6 +17,10 @@ export const Elements = {
 
     turn: {
         moveLimit: 1,
+        order: {
+            first: (G, ctx) => ctx.random.Die(2)-1,
+            next: (G, ctx) => (ctx.playOrderPos + 1) % ctx.numPlayers,
+        }
     },
 
     moves: {
