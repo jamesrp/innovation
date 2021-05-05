@@ -4,10 +4,12 @@ import {sumArray} from './common';
 
 // TODO:
 // 1) Mark the last card to have moved (anywhere) and highlight it with a blue outline.
-// 2) Make the game reset itself except for a global player score. Then actual victory is when score == 6.
 // 3) Make the 6s have a little red "DISCARD" button underneath them.
 // 4) Make the top card on the table have a little "DRAW" button underneath it.
-// 5) Alternate first player for the individual games of a match.
+// 5) Alternate first player for the individual games of a match. This is probably done in combination with (6),
+//    so we can go to a stage where we view stuff, and then when both players exit that stage, the newG
+//    will have the next startingPlayerPos.
+// 6) Display the final situation of each individual game and give players a chance to view it before reshuffling.
 
 export const Elements = {
     name: 'elements',
@@ -18,7 +20,7 @@ export const Elements = {
     turn: {
         moveLimit: 1,
         order: {
-            first: (G, ctx) => ctx.random.Die(2)-1,
+            first: (G, ctx) => G.startingPlayerPos,
             next: (G, ctx) => (ctx.playOrderPos + 1) % ctx.numPlayers,
         }
     },
@@ -73,29 +75,38 @@ function Knock(G, ctx) {
     if (playerSums[ctx.playerID] > tableSum) {
         return INVALID_MOVE;
     }
-    G.winnerPoints = 2;
     let oppID = opp(ctx.playerID);
-    if (playerSums[oppID] > tableSum) {
-        G.winner = ctx.playerID;
-        return;
+    let winner = oppID;
+    if (playerSums[oppID] > tableSum || playerSums[oppID] < playerSums[ctx.playerID]) {
+        winner = ctx.playerID;
     }
-    if (playerSums[oppID] >= playerSums[ctx.playerID]) {
-        G.winner = oppID;
-        return;
+    let newG = mySetup(ctx);
+    newG.startingPlayerPos = 1 - G.startingPlayerPos;
+    newG.playerPoints = G.playerPoints;
+    newG.playerPoints[winner] += 2;
+    if (newG.playerPoints[winner] >= 6) {
+        newG.winner = winner;
     }
-    G.winner = ctx.playerID;
+    return newG;
 }
 
 function Fold(G, ctx) {
     // scoop and give opp 1 point.
-    G.winner = opp(ctx.playerID);
-    G.winnerPoints = 1;
+    let newG = mySetup(ctx);
+    newG.startingPlayerPos = 1 - G.startingPlayerPos;
+    newG.playerPoints = {...G.playerPoints};
+    newG.playerPoints[opp(ctx.playerID)] += 1;
+    if (newG.playerPoints[opp(ctx.playerID)] === 6) {
+        newG.winner = opp(ctx.playerID);
+    }
+    return newG;
 }
 
 function mySetup(ctx) {
     let deck = ctx.random.Shuffle(Array(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6, 6));
     let initialHandSize = 6;
     return {
+        startingPlayerPos:ctx.random.Die(2)-1,
         "0": {
             hand: deck.splice(0, initialHandSize),
         },
@@ -112,8 +123,11 @@ function mySetup(ctx) {
             "0": initialHandSize,
             "1": initialHandSize,
         },
+        playerPoints: {
+            "0": 0,
+            "1": 0,
+        },
         winner: '',
-        winnerPoints: 0,
     };
 }
 

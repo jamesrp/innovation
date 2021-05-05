@@ -4,10 +4,9 @@ import {message, sumArray} from './common';
 
 export class ElementsBoard extends React.Component {
     render() {
-        // TODO: it would be nice to be able to reset the game and total up the overall points automatically.
         let msg = message(this.props.ctx, this.props.playerID);
-        if (this.props.ctx.gameover) {
-            msg = msg + " - claiming " + this.props.G.winnerPoints.toString() + " points";
+        if (!this.props.ctx.gameover) {
+            msg = "";
         }
 
         let opp = "0";
@@ -50,11 +49,12 @@ export class ElementsBoard extends React.Component {
         return (
             <div>
                 <div style={boardStyle()}>
-                    <h3> Player {this.props.playerID} board {msg}</h3>
+                    <h3>Elements {msg}</h3>
                     <table id="board" style={tableStyle()}>
                         <tbody>
                         <tr>
-                            <td style={sideStyle}>Opponent hand ({oppTotal})</td>
+                            <td style={sideStyle}>Opponent hand ({oppTotal})<br/>
+                            Match Points: {this.props.G.playerPoints[opp]}/6</td>
                             <td style={cellStyleElements('red')}>{renderCards(oppFakeHand)}</td>
                         </tr>
                         <tr>
@@ -74,7 +74,8 @@ export class ElementsBoard extends React.Component {
                             <td style={cellStyleElements('yellow')}>{renderCards(this.props.G.playerPiles[this.props.playerID])}</td>
                         </tr>
                         <tr>
-                            <td style={sideStyle}>My hand ({myTotal})</td>
+                            <td style={sideStyle}>My hand ({myTotal})<br/>
+                                Match Points: {this.props.G.playerPoints[this.props.playerID]}/6</td>
                             <td style={cellStyleElements('yellow')}>{renderCards(this.props.G[this.props.playerID].hand, myTurn ? this.props.moves.Play : null)}</td>
                         </tr>
                         </tbody>
