@@ -1,5 +1,18 @@
 import React from 'react';
 
+const handleDragEnter = e => {
+    e.preventDefault();
+    e.stopPropagation();
+};
+const handleDragLeave = e => {
+    e.preventDefault();
+    e.stopPropagation();
+};
+const handleDragOver = e => {
+    e.preventDefault();
+    e.stopPropagation();
+};
+
 export class GloryToRomeBoard extends React.Component {
     render() {
         let winner = 'Game not finished yet.';
@@ -41,11 +54,17 @@ export class GloryToRomeBoard extends React.Component {
                 </li>
             ))
         } else {
-            this.props.G[this.props.playerID].hand.forEach((element, index, array) => hand.push(
-                <li onClick={() => this.props.moves.ClickCard(element.id)}>
-                    {element.name} - {element.id}
-                </li>
-            ))
+            this.props.G[this.props.playerID].hand.forEach(element => {
+                let dragString = "event.dataTransfer.setData('text/plain', '" + element.id + "')";
+                hand.push(
+                    <li onClick={() => this.props.moves.ClickCard(element.id)} draggable="true"
+                        onDragStart={event => {
+                            event.dataTransfer.setData('text/plain',element.id);
+                        }}>
+                        {element.name} - {element.id}
+                    </li>
+                );
+            })
         }
 
 
@@ -80,13 +99,22 @@ export class GloryToRomeBoard extends React.Component {
             let card = element.card;
             if (element.completed) {
                 buildings.push(
-                    <li onClick={() => this.props.moves.ClickCard(element.id)}>
-                        {card.name} - {card.id}
+                    <li onClick={() => this.props.moves.ClickCard(card.id)}>
+                        {card.name} - {card.id} [DONE]
                     </li>
                 )
             } else {
                 buildings.push(
-                    <li onClick={() => this.props.moves.ClickCard(element.id)}>
+                    <li onClick={() => this.props.moves.ClickCard(card.id)}
+                        onDragOver={e => handleDragOver(e)}
+                        onDragEnter={e => handleDragEnter(e)}
+                        onDragLeave={e => handleDragLeave(e)}
+                        onDrop={event => {
+                            const data = event.dataTransfer.getData("text/plain");
+                            this.props.moves.DragCard(data, card.id);
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }}>
                         {card.name} - {card.id} [{element.material.length} / {card.points}]
                     </li>
                 )

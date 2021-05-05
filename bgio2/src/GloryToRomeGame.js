@@ -99,7 +99,7 @@ export const GloryToRome = {
             }
         },
         resolve: {
-            moves: {ClickCard, ClickMenu, Pass},
+            moves: {ClickCard, DragCard, ClickMenu, Pass},
             endIf: (G, ctx) => {
                 if (G.stack.length > 0) {
                     return {next: 'unwindStack'};
@@ -120,7 +120,7 @@ export const GloryToRome = {
             }
         },
         unwindStack: {
-            moves: {ClickCard, ClickMenu, Pass},
+            moves: {ClickCard, ClickMenu, DragCard, Pass},
             endIf: (G, ctx) => {
                 if (G.stack.length === 0) {
                     let p = nextToResolve(G);
@@ -282,6 +282,36 @@ function ClickCard(G, ctx, id) {
 
     G.log.push("Player " + ctx.playerID + " selects " + toZone[toZone.length - 1].name);
     console.log(JSON.stringify(G.turnOrderStateMachine));
+}
+
+function DragCard(G, ctx, idFrom, idTo) {
+    // TODO: for now just handle craftsman drag/drop.
+    // When we may be handling UnwindStack moves here, need to port some of the logic from ClickCard.
+    G.turnOrderStateMachine.resolveMovesSpent[ctx.playerID] += 1;
+    if (ctx.phase === 'unwindStack') {
+        return INVALID_MOVE;
+    }
+    if (G.public[G.turnOrderStateMachine.leader].cardPlayed[0].type !== craftsman) {
+        return INVALID_MOVE;
+    }
+    let handIndex = G[ctx.playerID].hand.findIndex(element => (element.id === idFrom));
+    if (handIndex === -1) {
+        return INVALID_MOVE;
+    }
+    let material = G[ctx.playerID].hand[handIndex];
+    G[ctx.playerID].hand.splice(handIndex, 1);
+    let buildingIndex = G.public[ctx.playerID].buildings.findIndex(bldg => (bldg.card.id === idTo));
+    if (buildingIndex === -1) {
+        return INVALID_MOVE;
+    }
+    let building = G.public[ctx.playerID].buildings[buildingIndex];
+    if (building.completed) {
+        return INVALID_MOVE;
+    }
+    building.material.push(material);
+    if (building.material.length === building.card.points) {
+        building.completed = true;
+    }
 }
 
 function startBuilding(G, playerID, id) {
