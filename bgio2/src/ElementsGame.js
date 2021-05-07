@@ -82,7 +82,7 @@ function Knock(G, ctx) {
     }
     let newG = mySetup(ctx);
     newG.startingPlayerPos = 1 - G.startingPlayerPos;
-    newG.playerPoints = G.playerPoints;
+    newG.playerPoints = {...G.playerPoints};
     newG.playerPoints[winner] += 2;
     if (newG.playerPoints[winner] >= 6) {
         newG.winner = winner;
