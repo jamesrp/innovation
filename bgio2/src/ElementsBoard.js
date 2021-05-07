@@ -2,6 +2,8 @@ import React from 'react';
 import {boardStyle, tableStyle, cellStyleSide, cellStyleElements, handStyle, facedownCardStyle} from './styles';
 import {message, sumArray} from './common';
 
+// TODO: use CSS file for classes, we are duplicating a lot.
+
 export class ElementsBoard extends React.Component {
     render() {
         let msg = message(this.props.ctx, this.props.playerID);
@@ -20,6 +22,7 @@ export class ElementsBoard extends React.Component {
 
         let sideStyle = cellStyleSide('clear', false);
         sideStyle.width = '180px';
+        sideStyle.lineHeight = '20px';
 
         let actionHeaderStyle = handStyle('clear');
         let actionStyle = handStyle('purple');
@@ -54,29 +57,31 @@ export class ElementsBoard extends React.Component {
                         <tbody>
                         <tr>
                             <td style={sideStyle}>Opponent hand ({oppTotal})<br/>
-                            Match Points: {this.props.G.playerPoints[opp]}/6</td>
-                            <td style={cellStyleElements('red')}>{renderCards(oppFakeHand)}</td>
+                                Match Points: [{this.props.G.playerPoints[opp]}/6]
+                            </td>
+                            <td style={cellStyleElements('red')}>{renderCardsBasic(oppFakeHand)}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>Opponent board</td>
-                            <td style={cellStyleElements('red')}>{renderCards(this.props.G.playerPiles[opp])}</td>
+                            <td style={cellStyleElements('red')}>{renderCardsBasic(this.props.G.playerPiles[opp])}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>Discards</td>
-                            <td style={cellStyleElements('grey')}>{renderCards(this.props.G.discards)}</td>
+                            <td style={cellStyleElements('grey')}>{renderCardsBasic(this.props.G.discards)}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>Table ({table})</td>
-                            <td style={cellStyleElements('grey')}>{renderCards(this.props.G.table)}</td>
+                            <td style={cellStyleElements('grey')}>{renderTable(this.props.G.table, myTurn ? this.props.moves.Draw : null)}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>My board</td>
-                            <td style={cellStyleElements('yellow')}>{renderCards(this.props.G.playerPiles[this.props.playerID])}</td>
+                            <td style={cellStyleElements('yellow')}>{renderCardsBasic(this.props.G.playerPiles[this.props.playerID])}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>My hand ({myTotal})<br/>
-                                Match Points: {this.props.G.playerPoints[this.props.playerID]}/6</td>
-                            <td style={cellStyleElements('yellow')}>{renderCards(this.props.G[this.props.playerID].hand, myTurn ? this.props.moves.Play : null)}</td>
+                                Match Points: {this.props.G.playerPoints[this.props.playerID]}/6
+                            </td>
+                            <td style={cellStyleElements('yellow')}>{renderMyHand(this.props.G[this.props.playerID].hand, myTurn ? this.props.moves.Play : null, this.props.moves.Discard)}</td>
                         </tr>
                         </tbody>
                     </table>
@@ -84,12 +89,6 @@ export class ElementsBoard extends React.Component {
                         <tbody>
                         <tr>
                             <td style={actionHeaderStyle}>Other Actions</td>
-                        </tr>
-                        <tr>
-                            {maybeClickableTD(actionStyle, "DRAW from table", (myTurn && this.props.G.table.length > 0) ? this.props.moves.Draw : null)}
-                        </tr>
-                        <tr>
-                            {maybeClickableTD(actionStyle, "DISCARD a 6", (myTurn && this.props.G[this.props.playerID].hand.includes(6)) ? this.props.moves.Discard : null)}
                         </tr>
                         <tr>
                             {maybeClickableTD(actionStyle, "KNOCK", (myTurn && canKnock) ? this.props.moves.Knock : null)}
@@ -131,25 +130,101 @@ export class ElementsBoard extends React.Component {
     }
 }
 
-function renderCards(arr, onClick) {
-    let x = [1, 2, 3];
+function renderCardsBasic(arr) {
+    let style = facedownCardStyle('brown');
+    style.border = '1px solid #555';
+
+    let cards = arr.flatMap(c => <td style={style}>{c}</td>);
+
+    return <table>
+        <tr>
+            {cards}
+        </tr>
+    </table>;
+}
+
+function renderTable(arr, onClick) {
+    let style = facedownCardStyle('brown');
+    style.border = '1px solid #555';
+
+    let cards = arr.flatMap(c => <td style={style}>{c}</td>);
+    if (cards.length === 0) {
+        return <table>
+            <tr>
+                {cards}
+            </tr>
+        </table>;
+    }
+
+    let smallButtonStyle = facedownCardStyle('purple');
+    smallButtonStyle.height = '20px';
+    smallButtonStyle.lineHeight = '20px';
+    smallButtonStyle.fontSize = 'x-small';
+    smallButtonStyle.border = '3px solid #555';
+    if (onClick === undefined || onClick === null) {
+        smallButtonStyle.border = '1px solid #555';
+    }
+    let buttons = [];
+    for (let i = 0; i < cards.length - 1; i++) {
+            buttons.push( <td></td>);
+    }
+    if (onClick === undefined || onClick === null) {
+        buttons.push( <td style={smallButtonStyle}>DRAW</td>);
+    } else {
+        buttons.push( <td onClick={() => onClick()} style={smallButtonStyle}>DRAW</td>);
+
+    }
+
+    return <table>
+        <tr>
+            {cards}
+        </tr>
+        <tr>
+            {buttons}
+        </tr>
+    </table>;
+}
+
+function renderMyHand(arr, onClick, onClickDiscard) {
     let style = facedownCardStyle('brown');
     style.border = '3px solid #555';
     if (onClick === undefined || onClick === null) {
         style.border = '1px solid #555';
     }
-    let content = arr.flatMap(c => {
+    let cards = arr.flatMap(c => {
         if (onClick === undefined || onClick === null) {
             return <td style={style}>{c}</td>;
         }
         return <td onClick={() => onClick(c)} style={style}>{c}</td>;
     });
+    let smallButtonStyle = facedownCardStyle('purple');
+    smallButtonStyle.height = '20px';
+    smallButtonStyle.lineHeight = '20px';
+    smallButtonStyle.fontSize = 'x-small';
+    smallButtonStyle.border = '3px solid #555';
+    if (onClick === undefined || onClick === null) {
+        smallButtonStyle.border = '1px solid #555';
+    }
+    let buttons = arr.flatMap(c => {
+        if (c !== 6) {
+            return <td></td>;
+        }
+        if (onClick === undefined || onClick === null) {
+            return <td style={smallButtonStyle}>DISCARD</td>;
+        }
+        return <td onClick={() => onClickDiscard(c)} style={smallButtonStyle}>DISCARD</td>;
+    });
     return <table>
         <tr>
-            <td>{content}</td>
+            {cards}
+        </tr>
+        <tr>
+            {buttons}
         </tr>
     </table>;
 }
+
+// function renderCards
 
 function maybeClickableTD(style, msg, onClick) {
     if (onClick === undefined || onClick === null) {
