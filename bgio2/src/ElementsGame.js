@@ -4,8 +4,6 @@ import {sumArray} from './common';
 
 // TODO:
 // 1) Mark the last card to have moved (anywhere) and highlight it with a blue outline.
-// 3) Make the 6s have a little red "DISCARD" button underneath them.
-// 4) Make the top card on the table have a little "DRAW" button underneath it.
 // 5) Alternate first player for the individual games of a match. This is probably done in combination with (6),
 //    so we can go to a stage where we view stuff, and then when both players exit that stage, the newG
 //    will have the next startingPlayerPos.
