@@ -1,6 +1,6 @@
 import React from 'react';
 import {boardStyle, tableStyle, cellStyleSide, cellStyleElements, handStyle, facedownCardStyle} from './styles';
-import {message, sumArray} from './common';
+import {message, myTurnP, sumArray} from './common';
 
 // TODO: use CSS file for classes, we are duplicating a lot.
 
@@ -16,9 +16,11 @@ export class ElementsBoard extends React.Component {
             opp = "1";
         }
         let myTurn = (this.props.playerID === this.props.ctx.currentPlayer);
-        if (this.props.ctx.gameover) {
+        if (this.props.ctx.gameover || this.props.ctx.phase === "review") {
             myTurn = false;
         }
+
+        let shouldIReview = (this.props.ctx.phase === "review") && myTurnP(this.props.ctx, this.props.playerID);
 
         let sideStyle = cellStyleSide('clear', false);
         sideStyle.width = '180px';
@@ -42,9 +44,9 @@ export class ElementsBoard extends React.Component {
         let oppTotal = oppBoardTotal.toString() + (this.props.G.playerHandCounts[opp] === 0 ? '' : ' + ?');
         let table = sumArray(this.props.G.table);
         let myTotal = sumArray(this.props.G.playerPiles[this.props.playerID]) + sumArray(this.props.G[this.props.playerID].hand);
-        let canKnock = myTotal <= table;
+        let canKnock = (myTotal <= table) && myTurn;
 
-        if (this.props.ctx.gameover) {
+        if (this.props.ctx.gameover || this.props.ctx.phase === "review") {
             oppFakeHand = this.props.G[opp].hand;
             oppTotal = oppBoardTotal + sumArray(oppFakeHand);
         }
@@ -85,19 +87,9 @@ export class ElementsBoard extends React.Component {
                         </tr>
                         </tbody>
                     </table>
-                    <table id="controls" style={tableStyle()}>
-                        <tbody>
-                        <tr>
-                            <td style={actionHeaderStyle}>Other Actions</td>
-                        </tr>
-                        <tr>
-                            {maybeClickableTD(actionStyle, "KNOCK", (myTurn && canKnock) ? this.props.moves.Knock : null)}
-                        </tr>
-                        <tr>
-                            {maybeClickableTD(actionStyle, "FOLD", myTurn ? this.props.moves.Fold : null)}
-                        </tr>
-                        </tbody>
-                    </table>
+                    {controls(canKnock ? this.props.moves.Knock : null,
+                        myTurn ? this.props.moves.Fold : null,
+                        shouldIReview ? this.props.moves.Okay : null)}
                     <h4>Rules (see <a href="https://boardgamegeek.com/boardgame/73313/elements">BGG</a>)</h4>
                     <div style={rulesStyle}>
                         <p>Elements, a.k.a. Khmer, is a bluffing and deduction game for two players that contains only
@@ -180,12 +172,12 @@ function renderTable(arr, onClick, shouldHighlight) {
     }
     let buttons = [];
     for (let i = 0; i < cards.length - 1; i++) {
-            buttons.push( <td></td>);
+        buttons.push(<td></td>);
     }
     if (onClick === null) {
-        buttons.push( <td style={smallButtonStyle}>DRAW</td>);
+        buttons.push(<td style={smallButtonStyle}>DRAW</td>);
     } else {
-        buttons.push( <td onClick={() => onClick()} style={smallButtonStyle}>DRAW</td>);
+        buttons.push(<td onClick={() => onClick()} style={smallButtonStyle}>DRAW</td>);
 
     }
 
@@ -235,6 +227,32 @@ function renderMyHand(arr, onClick, onClickDiscard) {
         <tr>
             {buttons}
         </tr>
+    </table>;
+}
+
+function controls(knockFn, foldFn, reviewFn) {
+    let actionHeaderStyle = handStyle('clear');
+    let actionStyle = handStyle('purple');
+    let actionStyleClickable = handStyle('purple');
+    actionStyleClickable.border = '3px solid #555';
+    let trs = [];
+    trs.push(<tr>
+        {maybeClickableTD(actionStyle, "KNOCK", knockFn)}    </tr>);
+    trs.push(<tr>
+        {maybeClickableTD(actionStyle, "FOLD", foldFn)}
+    </tr>);
+    if (reviewFn !== null) {
+        trs.push(<tr>
+            {maybeClickableTD(actionStyle, "DONE REVIEWING", reviewFn)}
+        </tr>);
+    }
+    return <table id="controls" style={tableStyle()}>
+        <tbody>
+        <tr>
+            <td style={actionHeaderStyle}>Other Actions</td>
+        </tr>
+        {trs}
+        </tbody>
     </table>;
 }
 

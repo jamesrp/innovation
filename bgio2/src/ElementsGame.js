@@ -2,31 +2,55 @@ import {INVALID_MOVE, PlayerView} from 'boardgame.io/core';
 
 import {sumArray} from './common';
 
-// TODO:
-// 5) Alternate first player for the individual games of a match. This is probably done in combination with (6),
-//    so we can go to a stage where we view stuff, and then when both players exit that stage, the newG
-//    will have the next startingPlayerPos.
-// 6) Display the final situation of each individual game and give players a chance to view it before reshuffling.
-
 export const Elements = {
     name: 'elements',
     minPlayers: 2,
     maxPlayers: 2,
     setup: mySetup,
 
-    turn: {
-        moveLimit: 1,
-        order: {
-            first: (G, ctx) => G.startingPlayerPos,
-            next: (G, ctx) => (ctx.playOrderPos + 1) % ctx.numPlayers,
-        }
-    },
+    phases: {
+        review: {
+            next: "play",
+            endIf: (G, ctx) => (G.numToReview === 0),
+            turn: {
+                moveLimit: 1,
+            },
+            stages: {
+                reviewStage: {},
+            },
+            moves: {
+                Okay: {
+                    move: Okay,
+                    client: false,
+                }
+            },
+            onEnd: (G, ctx) => {
+                G.startingPlayerPos = 1 - G.startingPlayerPos;
+                let newG = mySetup(ctx);
+                ["0", "1", "table", "playerPiles", "playerHandCounts"].forEach(fieldName => {
+                    G[fieldName] = newG[fieldName];
+                });
+            },
+        },
+        play: {
+            start: true,
+            next: "review",
+            endIf: (G, ctx) => (G.numToReview > 0),
+            turn: {
+                moveLimit: 1,
+                order: {
+                    first: (G, ctx) => G.startingPlayerPos,
+                    next: (G, ctx) => (ctx.playOrderPos + 1) % ctx.numPlayers,
+                }
+            },
 
-    moves: {
-        Play, Draw, Discard, Fold, Knock: {
-            move: Knock,
-            client: false,
-        }
+            moves: {
+                Play, Draw, Discard, Fold, Knock: {
+                    move: Knock,
+                    client: false,
+                }
+            },
+        },
     },
 
     playerView: stripSecrets,
@@ -37,6 +61,10 @@ export const Elements = {
         }
     },
 };
+
+function Okay(G, ctx) {
+    G.numToReview -= 1;
+}
 
 function Play(G, ctx, num) {
     let index = G[ctx.playerID].hand.indexOf(num);
@@ -80,34 +108,32 @@ function Knock(G, ctx) {
     if (playerSums[oppID] > tableSum || playerSums[oppID] < playerSums[ctx.playerID]) {
         winner = ctx.playerID;
     }
-    let newG = mySetup(ctx);
-    newG.startingPlayerPos = 1 - G.startingPlayerPos;
-    newG.playerPoints = {...G.playerPoints};
-    newG.playerPoints[winner] += 2;
-    if (newG.playerPoints[winner] >= 6) {
-        newG.winner = winner;
-    }
-    return newG;
+    adjustWinner(G, ctx, winner, 2);
 }
 
 function Fold(G, ctx) {
     // scoop and give opp 1 point.
-    let newG = mySetup(ctx);
-    newG.startingPlayerPos = 1 - G.startingPlayerPos;
-    newG.playerPoints = {...G.playerPoints};
-    newG.playerPoints[opp(ctx.playerID)] += 1;
-    if (newG.playerPoints[opp(ctx.playerID)] === 6) {
-        newG.winner = opp(ctx.playerID);
-    }
-    return newG;
+    adjustWinner(G, ctx, opp(ctx.playerID), 1);
 }
+
+function adjustWinner(G, ctx, winner, points) {
+    G.playerPoints[winner] += points;
+    if (G.playerPoints[winner] >= 6) {
+        G.winner = winner;
+    } else {
+        G.numToReview = 2;
+        ctx.events.setActivePlayers({all: 'reviewStage', moveLimit: 1});
+    }
+}
+
 
 function mySetup(ctx) {
     let deck = ctx.random.Shuffle(Array(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6, 6));
     let initialHandSize = 6;
     return {
         lastMove: "",
-        startingPlayerPos:ctx.random.Die(2)-1,
+        numToReview: 0,
+        startingPlayerPos: ctx.random.Die(2) - 1,
         "0": {
             hand: deck.splice(0, initialHandSize),
         },
@@ -141,7 +167,7 @@ function opp(playerID) {
 }
 
 function stripSecrets(G, ctx, playerID) {
-    if (ctx.gameover) {
+    if (ctx.gameover || ctx.phase === "review") {
         return G;
     }
     return PlayerView.STRIP_SECRETS(G, ctx, playerID);
