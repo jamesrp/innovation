@@ -59,23 +59,23 @@ export class ElementsBoard extends React.Component {
                             <td style={sideStyle}>Opponent hand ({oppTotal})<br/>
                                 Match Points: [{this.props.G.playerPoints[opp]}/6]
                             </td>
-                            <td style={cellStyleElements('red')}>{renderCardsBasic(oppFakeHand)}</td>
+                            <td style={cellStyleElements('red')}>{renderCardsBasic(oppFakeHand, false)}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>Opponent board</td>
-                            <td style={cellStyleElements('red')}>{renderCardsBasic(this.props.G.playerPiles[opp])}</td>
+                            <td style={cellStyleElements('red')}>{renderCardsBasic(this.props.G.playerPiles[opp], this.props.G.lastMove === (opp + "draw"))}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>Discards</td>
-                            <td style={cellStyleElements('grey')}>{renderCardsBasic(this.props.G.discards)}</td>
+                            <td style={cellStyleElements('grey')}>{renderCardsBasic(this.props.G.discards, this.props.G.lastMove === "discard")}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>Table ({table})</td>
-                            <td style={cellStyleElements('grey')}>{renderTable(this.props.G.table, myTurn ? this.props.moves.Draw : null)}</td>
+                            <td style={cellStyleElements('grey')}>{renderTable(this.props.G.table, myTurn ? this.props.moves.Draw : null, this.props.G.lastMove === "play")}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>My board</td>
-                            <td style={cellStyleElements('yellow')}>{renderCardsBasic(this.props.G.playerPiles[this.props.playerID])}</td>
+                            <td style={cellStyleElements('yellow')}>{renderCardsBasic(this.props.G.playerPiles[this.props.playerID], this.props.G.lastMove === (this.props.playerID + "draw"))}</td>
                         </tr>
                         <tr>
                             <td style={sideStyle}>My hand ({myTotal})<br/>
@@ -130,12 +130,29 @@ export class ElementsBoard extends React.Component {
     }
 }
 
-function renderCardsBasic(arr) {
+function renderCardsAux(arr, shouldHighlight) {
     let style = facedownCardStyle('brown');
     style.border = '1px solid #555';
 
-    let cards = arr.flatMap(c => <td style={style}>{c}</td>);
+    let cards = [];
+    for (let i = 0; i < arr.length - 1; i++) {
+        cards.push(<td style={style}>{arr[i]}</td>);
+    }
+    if (arr.length > 0) {
+        if (shouldHighlight) {
+            let style2 = facedownCardStyle('brown');
+            style2.border = '3px solid #22f';
+            cards.push(<td style={style2}>{arr[arr.length - 1]}</td>);
+        } else {
+            cards.push(<td style={style}>{arr[arr.length - 1]}</td>);
+        }
+    }
 
+    return cards;
+}
+
+function renderCardsBasic(arr, shouldHighlight) {
+    let cards = renderCardsAux(arr, shouldHighlight);
     return <table>
         <tr>
             {cards}
@@ -143,11 +160,8 @@ function renderCardsBasic(arr) {
     </table>;
 }
 
-function renderTable(arr, onClick) {
-    let style = facedownCardStyle('brown');
-    style.border = '1px solid #555';
-
-    let cards = arr.flatMap(c => <td style={style}>{c}</td>);
+function renderTable(arr, onClick, shouldHighlight) {
+    let cards = renderCardsAux(arr, shouldHighlight);
     if (cards.length === 0) {
         return <table>
             <tr>
@@ -161,14 +175,14 @@ function renderTable(arr, onClick) {
     smallButtonStyle.lineHeight = '20px';
     smallButtonStyle.fontSize = 'x-small';
     smallButtonStyle.border = '3px solid #555';
-    if (onClick === undefined || onClick === null) {
+    if (onClick === null) {
         smallButtonStyle.border = '1px solid #555';
     }
     let buttons = [];
     for (let i = 0; i < cards.length - 1; i++) {
             buttons.push( <td></td>);
     }
-    if (onClick === undefined || onClick === null) {
+    if (onClick === null) {
         buttons.push( <td style={smallButtonStyle}>DRAW</td>);
     } else {
         buttons.push( <td onClick={() => onClick()} style={smallButtonStyle}>DRAW</td>);
@@ -188,11 +202,11 @@ function renderTable(arr, onClick) {
 function renderMyHand(arr, onClick, onClickDiscard) {
     let style = facedownCardStyle('brown');
     style.border = '3px solid #555';
-    if (onClick === undefined || onClick === null) {
+    if (onClick === null) {
         style.border = '1px solid #555';
     }
     let cards = arr.flatMap(c => {
-        if (onClick === undefined || onClick === null) {
+        if (onClick === null) {
             return <td style={style}>{c}</td>;
         }
         return <td onClick={() => onClick(c)} style={style}>{c}</td>;
@@ -202,14 +216,14 @@ function renderMyHand(arr, onClick, onClickDiscard) {
     smallButtonStyle.lineHeight = '20px';
     smallButtonStyle.fontSize = 'x-small';
     smallButtonStyle.border = '3px solid #555';
-    if (onClick === undefined || onClick === null) {
+    if (onClick === null) {
         smallButtonStyle.border = '1px solid #555';
     }
     let buttons = arr.flatMap(c => {
         if (c !== 6) {
             return <td></td>;
         }
-        if (onClick === undefined || onClick === null) {
+        if (onClick === null) {
             return <td style={smallButtonStyle}>DISCARD</td>;
         }
         return <td onClick={() => onClickDiscard(c)} style={smallButtonStyle}>DISCARD</td>;
@@ -224,10 +238,8 @@ function renderMyHand(arr, onClick, onClickDiscard) {
     </table>;
 }
 
-// function renderCards
-
 function maybeClickableTD(style, msg, onClick) {
-    if (onClick === undefined || onClick === null) {
+    if (onClick === null) {
         return <td style={style}>{msg}</td>;
     }
     let styleClickable = {

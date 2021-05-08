@@ -3,7 +3,6 @@ import {INVALID_MOVE, PlayerView} from 'boardgame.io/core';
 import {sumArray} from './common';
 
 // TODO:
-// 1) Mark the last card to have moved (anywhere) and highlight it with a blue outline.
 // 5) Alternate first player for the individual games of a match. This is probably done in combination with (6),
 //    so we can go to a stage where we view stuff, and then when both players exit that stage, the newG
 //    will have the next startingPlayerPos.
@@ -46,6 +45,7 @@ function Play(G, ctx, num) {
     }
     G.table.push(G[ctx.playerID].hand.splice(index, 1)[0]);
     G.playerHandCounts[ctx.playerID] -= 1;
+    G.lastMove = "play";
 }
 
 function Draw(G, ctx) {
@@ -53,6 +53,7 @@ function Draw(G, ctx) {
         return INVALID_MOVE;
     }
     G.playerPiles[ctx.playerID].push(G.table.pop());
+    G.lastMove = ctx.playerID + "draw";
 }
 
 function Discard(G, ctx) {
@@ -62,6 +63,7 @@ function Discard(G, ctx) {
     }
     G.discards.push(G[ctx.playerID].hand.splice(index, 1)[0]);
     G.playerHandCounts[ctx.playerID] -= 1;
+    G.lastMove = "discard"
 }
 
 function Knock(G, ctx) {
@@ -104,6 +106,7 @@ function mySetup(ctx) {
     let deck = ctx.random.Shuffle(Array(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6, 6));
     let initialHandSize = 6;
     return {
+        lastMove: "",
         startingPlayerPos:ctx.random.Die(2)-1,
         "0": {
             hand: deck.splice(0, initialHandSize),
