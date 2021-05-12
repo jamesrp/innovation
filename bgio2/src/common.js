@@ -28,3 +28,9 @@ export function myTurnP(ctx, playerID) {
 export function sumArray(arr) {
     return arr.reduce((x, y) => x + y, 0);
 }
+
+export function reverseArray(arr) {
+    let reversed = arr.slice();
+    reversed.reverse();
+    return reversed;
+}

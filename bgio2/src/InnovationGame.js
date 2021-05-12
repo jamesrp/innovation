@@ -438,11 +438,33 @@ function mySetup(ctx) {
         G.achievements.push(G.decks[i].pop());
     }
     if (acceleratedSetup) {
-        for (let age = 2; age < 8; age++) {
-            for (let i = 0; i < ctx.numPlayers; i++) {
+        let splays = {
+            up: "",
+            right: "",
+            left: "",
+        };
+        for (let i = 0; i < ctx.numPlayers; i++) {
+            for (let age = 2; age < 8; age++) {
                 G[i.toString()].hand.push(G.decks[age].pop());
                 G[i.toString()].score.push(G.decks[age].pop());
+                // Meld three cards from each age.
+                for (let j = 0; j < 3; j++) {
+                    let card = G.decks[age].pop();
+                    G[i.toString()].board[card.color].push(card);
+                    if (G[i.toString()].board[card.color].length > 1) {
+                        if (splays.up === "") {
+                            splays.up = card.color;
+                        } else if (splays.right === "") {
+                            splays.right = card.color;
+                        } else if (splays.left === "") {
+                            splays.left = card.color;
+                        }
+                    }
+                }
             }
+            G[i.toString()].board.splay[splays.up] = "up";
+            G[i.toString()].board.splay[splays.right] = "right";
+            G[i.toString()].board.splay[splays.left] = "left";
         }
     }
     ctx.events.setActivePlayers({all: 'startStage', moveLimit: 1});

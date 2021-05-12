@@ -1,8 +1,9 @@
 import React from 'react';
 
+import "./InnovationBoard.css";
 import {colors, ages, symbols, symbolCounts} from './InnovationGame';
 import {cellStyleInnovation, cellStyleSide, facedownCardStyle, tableStyle} from "./styles";
-import {message} from "./common";
+import {message, reverseArray} from "./common";
 
 const symbolImages = {
     'bulb': 'https://jrp-bgio.s3-us-west-2.amazonaws.com/innovation-assets/bulb.png',
@@ -72,7 +73,8 @@ export class InnovationBoard extends React.Component {
                 <div>
                     {renderList(this.props.G.stack, "The Stack", x => x.name + "[player " + x.playerID + "]")}
                     {renderList(Array.of("yes", "no"), "Menu options", x => x, element => this.props.moves.ClickMenu(element))}
-                </div></tr>);
+                </div>
+            </tr>);
         }
         tbody.push(<tr onClick={() => this.props.moves.DrawAction()}>
             <td style={cellStyleSide('clear', false)}>Decks</td>
@@ -116,6 +118,9 @@ export class InnovationBoard extends React.Component {
                 <table style={tableStyle()}>
                     <tbody>{tbody}</tbody>
                 </table>
+                <hr/>
+                New Board:
+                {renderBoard2(this.props.G[this.props.playerID].board, clickHandlers.myBoard)}
                 {renderList(this.props.G.log, "Log", x => x)}
             </div>
         );
@@ -203,7 +208,108 @@ const splayShort = {
     'right': 'r',
 }
 
-function renderCard(top, extra) {
+function renderPile(pile, splay, onClick) {
+    if (pile.length === 0) {
+        return <div></div>;
+    }
+    if (splay === "") {
+        return <div class="container-unsplayed">{renderCard(pile[pile.length - 1], "top", onClick)}</div>;
+    }
+    if (splay === "left") {
+        let className = "container-horizontal-" + pile.length.toString();
+        let cards = pile.flatMap((card, index) => renderCard(card, "right" + (pile.length - index).toString(), onClick));
+        return <div class={className}>{cards}</div>;
+    }
+    if (splay === "right") {
+        let className = "container-horizontal-" + pile.length.toString();
+        let cards = pile.flatMap((card, index) => renderCard(card, "right" + (index + 1).toString(), onClick));
+        return <div class={className}>{cards}</div>;
+    }
+    if (splay === "up") {
+        let className = "container-up-" + pile.length.toString();
+        let cards = pile.flatMap((card, index) => renderCard(card, "up" + (pile.length - index).toString(), onClick));
+        return <div class={className}>{cards}</div>;
+    }
+}
+
+
+function renderCard(card, gridClass, onClick) {
+    let itemClasses = ["item", card.color];
+    if (gridClass !== "") {
+        itemClasses.push(gridClass);
+    }
+    let dogmas = [];
+    card.dogmasEnglish.forEach(txt => dogmas.push(<div class="dogma">
+        <img
+            src={symbolImages[card.mainSymbol]}
+            width="16"
+            height="16"
+        />: {txt}
+    </div>));
+    return <div class={itemClasses.join(" ")} onClick={onClick === null ? "" : () => onClick(card.id)}>
+        <div class="card-inner">
+            <div class="symbol symbol1">
+                <img
+                    src={symbolImages[card.symbols[0]]}
+                    width="80"
+                    height="80"
+                />
+            </div>
+            <div class="card-text">
+                <div class="card-typeline"><span class="card-name">{card.name}</span>
+                    <div class="card-age">{card.age}</div>
+                </div>
+                <div>{dogmas}</div>
+            </div>
+            <div class="symbol symbol4">
+                <img
+                    src={symbolImages[card.symbols[3]]}
+                    width="80"
+                    height="80"
+                />
+            </div>
+            <div class="symbol symbol5">
+                <img
+                    src={symbolImages[card.symbols[4]]}
+                    width="80"
+                    height="80"
+                />
+            </div>
+            <div class="symbol symbol6">
+                <img
+                    src={symbolImages[card.symbols[5]]}
+                    width="80"
+                    height="80"
+                />
+            </div>
+        </div>
+    </div>;
+}
+
+function renderBoard(board, msg, onClick, symbolsRendered) {
+    let output = colors.flatMap(c => {
+        let pile = board[c];
+        if (pile.length === 0) {
+            return <td style={cellStyleInnovation(c)}>-</td>;
+        }
+        let top = pile[pile.length - 1];
+        let extra = '';
+        let splay = splayShort[board.splay[c]];
+        if (pile.length > 1) {
+            extra = ' [+' + splay + (pile.length - 1).toString() + ']';
+        }
+        let cardView = renderCardOld(top, extra);
+        if (onClick === undefined || onClick === null) {
+            return <td style={cellStyleInnovation(c)}>{cardView}</td>;
+        }
+        return <td onClick={() => onClick(top.id)} style={cellStyleInnovation(c)}>{cardView}</td>;
+    })
+    return <tr>
+        <td style={cellStyleSide('clear', false)}>{msg}{symbolsRendered}</td>
+        {output}</tr>;
+}
+
+function renderCardOld(top, extra) {
     let inPlaySymbolSize = '72';
     let dogmaSymbolSize = '16';
     let innerTdata = [];
@@ -216,7 +322,7 @@ function renderCard(top, extra) {
         </td>
     </tr>);
     top.dogmasEnglish.forEach(txt => innerTdata.push(<tr height="20">
-        <td colSpan='3'  height="20">
+        <td colSpan='3' height="20">
             <p style={dogmaStyle}><img src={symbolImages[top.mainSymbol]} width={dogmaSymbolSize}
                                        height={dogmaSymbolSize}/> :{txt}</p>
         </td>
@@ -247,35 +353,22 @@ function renderCard(top, extra) {
     </table>
 }
 
-function renderBoard(board, msg, onClick, symbolsRendered) {
-    let output = colors.flatMap(c => {
-        let pile = board[c];
-        if (pile.length === 0) {
-            return <td style={cellStyleInnovation(c)}>-</td>;
-        }
-        let top = pile[pile.length - 1];
-        let extra = '';
-        let splay = splayShort[board.splay[c]];
-        if (pile.length > 1) {
-            extra = ' [+' + splay + (pile.length - 1).toString() + ']';
-        }
-        let cardView = renderCard(top, extra);
-        if (onClick === undefined || onClick === null) {
-            return <td style={cellStyleInnovation(c)}>{cardView}</td>;
-        }
-        return <td onClick={() => onClick(top.id)} style={cellStyleInnovation(c)}>{cardView}</td>;
-    })
-    return <tr>
-        <td style={cellStyleSide('clear', false)}>{msg}{symbolsRendered}</td>
-        {output}</tr>;
+function renderBoard2(board, onClick) {
+    return <div class="container-flex">
+        {renderPile(board["yellow"], board.splay["yellow"], onClick)}
+        {renderPile(board["blue"], board.splay["blue"], onClick)}
+        {renderPile(board["purple"], board.splay["purple"], onClick)}
+        {renderPile(board["red"], board.splay["red"], onClick)}
+        {renderPile(board["green"], board.splay["green"], onClick)}
+    </div>
 }
 
 function renderHand(hand, onClick) {
     let output = hand.flatMap(c => {
         if (onClick === undefined || onClick === null) {
-            return <td style={cellStyleInnovation(c.color)}>{renderCard(c, '')}</td>;
+            return <td style={cellStyleInnovation(c.color)}>{renderCardOld(c, '')}</td>;
         }
-        return <td onClick={() => onClick(c.id)} style={cellStyleInnovation(c.color)}>{renderCard(c, '')}</td>;
+        return <td onClick={() => onClick(c.id)} style={cellStyleInnovation(c.color)}>{renderCardOld(c, '')}</td>;
     })
     return <tr>
         {output}</tr>;
