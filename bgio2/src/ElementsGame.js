@@ -27,7 +27,7 @@ export const Elements = {
             onEnd: (G, ctx) => {
                 G.startingPlayerPos = 1 - G.startingPlayerPos;
                 let newG = mySetup(ctx);
-                ["0", "1", "table", "playerPiles", "playerHandCounts"].forEach(fieldName => {
+                ["0", "1", "discards", "table", "playerPiles", "playerHandCounts"].forEach(fieldName => {
                     G[fieldName] = newG[fieldName];
                 });
             },
