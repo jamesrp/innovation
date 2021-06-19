@@ -85,7 +85,7 @@ export class InnovationBoard extends React.Component {
         let handBody = [];
         let handChunked = chunkArrayInGroups(this.props.G[this.props.playerID].hand, 5);
         handChunked.forEach(chunk => handBody.push(renderHand(chunk, clickHandlers.myHand)));
-        // TODO: this shouldn't really be inside a tr - seems to make the border a bit wrong.
+        // TODO: unclear whether we need to chunk anymore. Try with just a flexbox since IIUC it handles multiline.
         tbody.push(<tr>
             <td style={cellStyleSide('clear', false)}>My Hand</td>
             <td colspan="5">
@@ -346,14 +346,10 @@ function renderBoard2(board, onClick) {
 }
 
 function renderHand(hand, onClick) {
-    let output = hand.flatMap(c => {
-        if (onClick === undefined || onClick === null) {
-            return <td style={cellStyleInnovation(c.color)}>{renderCardOld(c, '')}</td>;
-        }
-        return <td onClick={() => onClick(c.id)} style={cellStyleInnovation(c.color)}>{renderCardOld(c, '')}</td>;
-    })
-    return <tr>
-        {output}</tr>;
+    let output = hand.flatMap(c => renderPile([c], "", onClick));
+    return <div class="container-flex">
+        {output}
+    </div>
 }
 
 function chunkArrayInGroups(arr, size) {
