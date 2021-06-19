@@ -126,6 +126,20 @@ body {
     padding: 2px;
 }
 
+.container-horizontal-8 {
+    display: grid;
+    grid-template-columns: repeat(10, 100px);
+    grid-template-rows: repeat(2, 100px);
+    padding: 2px;
+}
+
+.container-horizontal-9 {
+    display: grid;
+    grid-template-columns: repeat(11, 100px);
+    grid-template-rows: repeat(2, 100px);
+    padding: 2px;
+}
+
 .container-unsplayed {
     display: grid;
     grid-template-columns: repeat(3, 100px);
@@ -194,6 +208,11 @@ body {
 
 .right8 {
     grid-column: 8/11;
+    grid-row: 1 / 3;
+}
+
+.right9 {
+    grid-column: 9/12;
     grid-row: 1 / 3;
 }
 
