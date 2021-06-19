@@ -215,28 +215,25 @@ function renderPile(pile, splay, onClick) {
         return <div></div>;
     }
     if (splay === "") {
-        return <div class="container-unsplayed">{renderCard(pile[pile.length - 1], "top", onClick)}</div>;
+        return <div class="container-unsplayed">{renderCard(pile[pile.length - 1], styleTop(1), onClick)}</div>;
     }
     if (splay === "left") {
-        let cards = pile.flatMap((card, index) => renderCard(card, "right" + (pile.length - index).toString(), onClick));
+        let cards = pile.flatMap((card, index) => renderCard(card, styleRight(pile.length - index), onClick));
         return <div style={containerHorizontal(pile.length)}>{cards}</div>;
     }
     if (splay === "right") {
-        let cards = pile.flatMap((card, index) => renderCard(card, "right" + (index + 1).toString(), onClick));
+        let cards = pile.flatMap((card, index) => renderCard(card, styleRight(index + 1), onClick));
         return <div style={containerHorizontal(pile.length)}>{cards}</div>;
     }
     if (splay === "up") {
-        let cards = pile.flatMap((card, index) => renderCard(card, "up" + (pile.length - index).toString(), onClick));
+        let cards = pile.flatMap((card, index) => renderCard(card, styleUp(pile.length - index), onClick));
         return <div style={containerVertical(pile.length)}>{cards}</div>;
     }
 }
 
 
-function renderCard(card, gridClass, onClick) {
+function renderCard(card, style, onClick) {
     let itemClasses = ["item", card.color];
-    if (gridClass !== "") {
-        itemClasses.push(gridClass);
-    }
     let dogmas = [];
     card.dogmasEnglish.forEach(txt => dogmas.push(<div class="dogma">
         <img
@@ -245,7 +242,7 @@ function renderCard(card, gridClass, onClick) {
             height="16"
         />: {txt}
     </div>));
-    return <div class={itemClasses.join(" ")} onClick={onClick === null ? "" : () => onClick(card.id)}>
+    return <div class={itemClasses.join(" ")} style={style} onClick={onClick === null ? "" : () => onClick(card.id)}>
         <div class="card-inner">
             <div class="symbol symbol1">
                 <img
@@ -379,4 +376,24 @@ function containerVertical(numCards) {
         'grid-template-columns': 'repeat(3, 100px)',
         padding: '2px',
     };
+}
+
+function styleRight(idx) {
+    let denominatorIdx = idx + 3;
+    return {
+        'grid-column': idx.toString() + ' / ' + denominatorIdx.toString(),
+        'grid-row': '1 / 3',
+    };
+}
+
+function styleUp(idx) {
+    let denominatorIdx = idx + 2;
+    return {
+        'grid-row': idx.toString() + ' / ' + denominatorIdx.toString(),
+        'grid-column': '1 / 4',
+    };
+}
+
+function styleTop(idx) {
+    return styleUp(1);
 }
