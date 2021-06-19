@@ -89,10 +89,7 @@ export class InnovationBoard extends React.Component {
         tbody.push(renderFacedownZone(this.props.G[this.props.playerID].score, "My score", clickHandlers.myScore));
         tbody.push(renderFacedownZone(this.props.G[this.props.playerID].achievements, "My Achievements"));
         tbody.push(renderBoard(this.props.G[this.props.playerID].board, "My Board", clickHandlers.myBoard, mySymbols));
-        let handBody = [];
-        let handChunked = chunkArrayInGroups(this.props.G[this.props.playerID].hand, 5);
-        handChunked.forEach(chunk => handBody.push(renderHand(chunk, clickHandlers.myHand)));
-        // TODO: unclear whether we need to chunk anymore. Try with just a flexbox since IIUC it handles multiline.
+        let handBody = renderHand(this.props.G[this.props.playerID].hand, clickHandlers.myHand);
         tbody.push(<tr>
             <td style={cellStyleSide('clear', false)}>My Hand</td>
             <td colspan="5">
@@ -354,14 +351,6 @@ function renderHand(hand, onClick) {
     return <div class="container-flex">
         {output}
     </div>
-}
-
-function chunkArrayInGroups(arr, size) {
-    let myArray = [];
-    for (let i = 0; i < arr.length; i += size) {
-        myArray.push(arr.slice(i, i + size));
-    }
-    return myArray;
 }
 
 function renderSymbols(counts) {

@@ -20,16 +20,11 @@ body {
     padding: 2px;
 }
 
-/* CSS Grid Styles */
 .container-unsplayed {
     display: grid;
     grid-template-columns: repeat(3, 100px);
     grid-template-rows: repeat(2, 100px);
     padding: 2px;
-}
-
-.flex-container {
-    display: flex;
 }
 
 .blue {
