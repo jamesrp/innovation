@@ -119,8 +119,6 @@ export class InnovationBoard extends React.Component {
                     <tbody>{tbody}</tbody>
                 </table>
                 <hr/>
-                New Board:
-                {renderBoard2(this.props.G[this.props.playerID].board, clickHandlers.myBoard)}
                 {renderList(this.props.G.log, "Log", x => x)}
             </div>
         );
@@ -287,26 +285,10 @@ function renderCard(card, gridClass, onClick) {
 }
 
 function renderBoard(board, msg, onClick, symbolsRendered) {
-    let output = colors.flatMap(c => {
-        let pile = board[c];
-        if (pile.length === 0) {
-            return <td style={cellStyleInnovation(c)}>-</td>;
-        }
-        let top = pile[pile.length - 1];
-        let extra = '';
-        let splay = splayShort[board.splay[c]];
-        if (pile.length > 1) {
-            extra = ' [+' + splay + (pile.length - 1).toString() + ']';
-        }
-        let cardView = renderCardOld(top, extra);
-        if (onClick === undefined || onClick === null) {
-            return <td style={cellStyleInnovation(c)}>{cardView}</td>;
-        }
-        return <td onClick={() => onClick(top.id)} style={cellStyleInnovation(c)}>{cardView}</td>;
-    })
     return <tr>
         <td style={cellStyleSide('clear', false)}>{msg}{symbolsRendered}</td>
-        {output}</tr>;
+        <td colspan="5" >{renderBoard2(board, onClick)}</td>
+        </tr>;
 }
 
 function renderCardOld(top, extra) {
