@@ -2,7 +2,14 @@ import React from 'react';
 
 import "./InnovationBoard.css";
 import {colors, ages, symbols, symbolCounts} from './InnovationGame';
-import {cellStyleInnovation, cellStyleSide, facedownCardStyle, tableStyle} from "./styles";
+import {
+    cellStyleInnovation,
+    cellStyleSide,
+    colorMapBackground,
+    facedownCardStyle,
+    handStyle,
+    tableStyle
+} from "./styles";
 import {message, reverseArray} from "./common";
 
 const symbolImages = {
@@ -214,19 +221,16 @@ function renderPile(pile, splay, onClick) {
         return <div class="container-unsplayed">{renderCard(pile[pile.length - 1], "top", onClick)}</div>;
     }
     if (splay === "left") {
-        let className = "container-horizontal-" + pile.length.toString();
         let cards = pile.flatMap((card, index) => renderCard(card, "right" + (pile.length - index).toString(), onClick));
-        return <div class={className}>{cards}</div>;
+        return <div style={containerHorizontal(pile.length)}>{cards}</div>;
     }
     if (splay === "right") {
-        let className = "container-horizontal-" + pile.length.toString();
         let cards = pile.flatMap((card, index) => renderCard(card, "right" + (index + 1).toString(), onClick));
-        return <div class={className}>{cards}</div>;
+        return <div style={containerHorizontal(pile.length)}>{cards}</div>;
     }
     if (splay === "up") {
-        let className = "container-up-" + pile.length.toString();
         let cards = pile.flatMap((card, index) => renderCard(card, "up" + (pile.length - index).toString(), onClick));
-        return <div class={className}>{cards}</div>;
+        return <div style={containerVertical(pile.length)}>{cards}</div>;
     }
 }
 
@@ -366,4 +370,24 @@ function renderSymbols(counts) {
         output.push(<span><img src={symbolImages[s]} width="16" height="16"/>:{counts[s].toString()} </span>);
     })
     return <div>{output}</div>
+}
+
+function containerHorizontal(numCards) {
+    let numRepeat = numCards + 2;
+    return {
+        display: 'grid',
+        'grid-template-columns': 'repeat(' + numRepeat.toString() + ', 100px)',
+        'grid-template-rows': 'repeat(2, 100px)',
+        padding: '2px',
+    };
+}
+
+function containerVertical(numCards) {
+    let numRepeat = numCards + 1;
+    return {
+        display: 'grid',
+        'grid-template-rows': 'repeat(' + numRepeat.toString() + ', 100px)',
+        'grid-template-columns': 'repeat(3, 100px)',
+        padding: '2px',
+    };
 }
