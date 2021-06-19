@@ -1,3 +1,5 @@
+import {INVALID_MOVE} from "boardgame.io/core";
+
 export function generateDecks(ctx) {
     let decks = {};
     for (let i = 1; i < 11; i++) {
@@ -82,6 +84,7 @@ function loadCards(ctx) {
     return cards;
 }
 
+// We can't put these in the card objects as lambdas because BGIO can't serialize closures.
 export const stackablesTable = {
     "wheel": (G, playerID) => ({
         name: "wheel",
@@ -140,3 +143,69 @@ export const stackablesTable = {
         playerID: playerID,
     }),
 }
+
+export const functionsTable = {
+    "wheel": (G, playerID) => drawMultiple(G, playerID, 1, 2),
+    "writing": (G, playerID) => drawMultiple(G, playerID, 2, 1),
+    "shareDraw": (G, playerID) => drawNormal(G, playerID),
+    "scoreOneFromHand": (G, playerID, cardID) => {
+        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
+        if (index === -1) {
+            return INVALID_MOVE;
+        }
+        let name = G[playerID].hand[index].name;
+        G[playerID].score.push(G[playerID].hand[index]);
+        G[playerID].hand.splice(index, 1);
+        G.log.push("Player " + playerID + " scores " + name + " from hand");
+    },
+    "returnOneFromHand": (G, playerID, cardID) => {
+        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
+        if (index === -1) {
+            return INVALID_MOVE;
+        }
+        let name = G[playerID].hand[index].name;
+        let age = G[playerID].hand[index].age;
+        G.decks[age].push(G[playerID].hand[index]); // TODO push to bottom?
+        G[playerID].hand.splice(index, 1);
+        let scoredCard = drawAuxAndReturn(G, playerID, age + 1);
+        if (scoredCard !== null) {
+            G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
+            G[playerID].score.push(scoredCard);
+        }
+        G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
+    },
+    "mayDrawATen": (G, playerID, msg) => {
+        if (msg === "no") {
+            G.log.push("Player " + playerID + " declines to draw a 10");
+            return;
+        }
+        if (msg === "yes") {
+            drawMultiple(G, playerID, 10, 1)
+            return;
+        }
+        return INVALID_MOVE;
+    },
+    "mayDrawAThree": (G, playerID, msg) => {
+        if (msg === "no") {
+            G.log.push("Player " + playerID + " declines to draw a 3");
+            return;
+        }
+        if (msg === "yes") {
+            drawMultiple(G, playerID, 3, 1)
+            return;
+        }
+        return INVALID_MOVE;
+    },
+    "splayPurpleLeft": (G, playerID) => {
+        if (G[playerID].board['purple'].length > 1) {
+            G[playerID].board.splay['purple'] = 'left';
+        }
+    },
+    "decline": (G, playerID, msg) => {
+        if (msg === "no") {
+            G.log.push("Player " + playerID + " declines");
+            return;
+        }
+        return INVALID_MOVE;
+    },
+};

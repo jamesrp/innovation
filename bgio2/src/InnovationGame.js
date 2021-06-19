@@ -1,5 +1,5 @@
 import {INVALID_MOVE} from 'boardgame.io/core';
-import {generateDecks, stackablesTable} from './InnovationData';
+import {generateDecks, stackablesTable, functionsTable} from './InnovationData';
 
 require('core-js/stable')
 
@@ -95,72 +95,6 @@ const acceleratedSetup = true; // Give each player a bunch of stuff to speed up 
 export const colors = Array.of("yellow", "blue", "purple", "red", "green");
 export const symbols = Array.of("castle", "crown", "bulb", "leaf", "factory", "clock");
 export const ages = Array.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
-
-const functionsTable = {
-    "wheel": (G, playerID) => drawMultiple(G, playerID, 1, 2),
-    "writing": (G, playerID) => drawMultiple(G, playerID, 2, 1),
-    "shareDraw": (G, playerID) => drawNormal(G, playerID),
-    "scoreOneFromHand": (G, playerID, cardID) => {
-        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
-        if (index === -1) {
-            return INVALID_MOVE;
-        }
-        let name = G[playerID].hand[index].name;
-        G[playerID].score.push(G[playerID].hand[index]);
-        G[playerID].hand.splice(index, 1);
-        G.log.push("Player " + playerID + " scores " + name + " from hand");
-    },
-    "returnOneFromHand": (G, playerID, cardID) => {
-        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
-        if (index === -1) {
-            return INVALID_MOVE;
-        }
-        let name = G[playerID].hand[index].name;
-        let age = G[playerID].hand[index].age;
-        G.decks[age].push(G[playerID].hand[index]); // TODO push to bottom?
-        G[playerID].hand.splice(index, 1);
-        let scoredCard = drawAuxAndReturn(G, playerID, age + 1);
-        if (scoredCard !== null) {
-            G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
-            G[playerID].score.push(scoredCard);
-        }
-        G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
-    },
-    "mayDrawATen": (G, playerID, msg) => {
-        if (msg === "no") {
-            G.log.push("Player " + playerID + " declines to draw a 10");
-            return;
-        }
-        if (msg === "yes") {
-            drawMultiple(G, playerID, 10, 1)
-            return;
-        }
-        return INVALID_MOVE;
-    },
-    "mayDrawAThree": (G, playerID, msg) => {
-        if (msg === "no") {
-            G.log.push("Player " + playerID + " declines to draw a 3");
-            return;
-        }
-        if (msg === "yes") {
-            drawMultiple(G, playerID, 3, 1)
-            return;
-        }
-        return INVALID_MOVE;
-    },
-    "splayPurpleLeft": (G, playerID) => {
-        if (G[playerID].board['purple'].length > 1) {
-            G[playerID].board.splay['purple'] = 'left';
-        }
-    },
-    "decline": (G, playerID, msg) => {
-        if (msg === "no") {
-            G.log.push("Player " + playerID + " declines");
-            return;
-        }
-        return INVALID_MOVE;
-    },
-};
 
 function ClickCard(G, ctx, id) {
     let stackable = G.stack.pop();
