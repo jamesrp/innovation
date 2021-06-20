@@ -1,4 +1,5 @@
 import {INVALID_MOVE} from "boardgame.io/core";
+import {drawMultiple, drawNormal, drawAuxAndReturn} from './InnovationGame';
 
 export function generateDecks(ctx) {
     let decks = {};
@@ -79,62 +80,92 @@ function loadCards(ctx) {
                 mainSymbol: "leaf",
                 symbols: ["leaf", "", "", "hex", "leaf", "leaf"],
             });
+            cards.push({
+                id: ctx.random.Number().toString(),
+                color: "red",
+                age: age,
+                name: "A Sharp Stick",
+                dogmasEnglish: ["I DEMAND you transfer a card from your score pile to my score pile."],
+                dogmasFunction: ["aSharpStick"],
+                mainSymbol: "factory",
+                symbols: ["factory", "", "", "factory", "factory", "hex"],
+            });
         }
     }
     return cards;
 }
 
 // We can't put these in the card objects as lambdas because BGIO can't serialize closures.
+// The mapping is:
+// card.dogmasFunction looks up in stackablesTable.
+// stackable.{executeBlind,executeWithCard,executeWithMenu} looks up in functionsTable.
+// TODO: can we remove any of this indirection?
 export const stackablesTable = {
-    "wheel": (G, playerID) => ({
+    "wheel": (G, playerID, originatingPlayerID) => ({
         name: "wheel",
+        isDemand: false,
         playerToMove: "",
+        originatingPlayerID: originatingPlayerID,
         executeBlind: "wheel",
         playerID: playerID,
     }),
-    "writing": (G, playerID) => ({
+    "writing": (G, playerID, originatingPlayerID) => ({
         name: "writing",
+        isDemand: false,
         playerToMove: "",
+        originatingPlayerID: originatingPlayerID,
         executeBlind: "writing",
         playerID: playerID,
     }),
-    "shareDraw": (G, playerID) => ({
+    "shareDraw": (G, playerID, originatingPlayerID) => ({
         name: "shareDraw",
+        isDemand: false,
         playerToMove: "",
+        originatingPlayerID: originatingPlayerID,
         executeBlind: "shareDraw",
         playerID: playerID,
     }),
-    "scoreOneFromHand": (G, playerID) => ({
+    "scoreOneFromHand": (G, playerID, originatingPlayerID) => ({
         name: "scoreOneFromHand",
+        isDemand: false,
         playerToMove: playerID,
+        originatingPlayerID: originatingPlayerID,
         executeWithCard: "scoreOneFromHand",
         cardOptions: Array(0), // TODO: fill out with player's hand.
         // TODO: if player has no hand make it a noop.
         playerID: playerID,
     }),
-    "mayDrawAThree": (G, playerID) => ({
+    "mayDrawAThree": (G, playerID, originatingPlayerID) => ({
         name: "mayDrawAThree",
+        isDemand: false,
         playerToMove: playerID,
+        originatingPlayerID: originatingPlayerID,
         executeWithMenu: "mayDrawAThree",
         menuOptions: Array.of("yes", "no"),
         playerID: playerID,
     }),
-    "mayDrawATen": (G, playerID) => ({
+    "mayDrawATen": (G, playerID, originatingPlayerID) => ({
         name: "mayDrawATen",
+        isDemand: false,
         playerToMove: playerID,
+        originatingPlayerID: originatingPlayerID,
         executeWithMenu: "mayDrawATen",
         menuOptions: Array.of("yes", "no"),
         playerID: playerID,
     }),
-    "splayPurpleLeft": (G, playerID) => ({
+    "splayPurpleLeft": (G, playerID, originatingPlayerID) => ({
         name: "splayPurpleLeft",
+        isDemand: false,
         playerToMove: '',
+        originatingPlayerID: originatingPlayerID,
         executeBlind: "splayPurpleLeft",
         playerID: playerID,
     }),
-    "returnOneFromHand": (G, playerID) => ({
+    "returnOneFromHand": (G, playerID, originatingPlayerID) => ({
         name: "returnOneFromHand",
+        isDemand: false,
         playerToMove: playerID,
+        originatingPlayerID: originatingPlayerID,
         executeWithCard: "returnOneFromHand",
         executeWithMenu: "decline",
         menuOptions: Array.of("no"),
@@ -142,13 +173,22 @@ export const stackablesTable = {
         // TODO: if player has no hand make it a noop.
         playerID: playerID,
     }),
+    "aSharpStick": (G, playerID, originatingPlayerID) => ({
+        name: "aSharpStick",
+        isDemand: true,
+        playerToMove: playerID,
+        originatingPlayerID: originatingPlayerID,
+        executeWithCard: "aSharpStick",
+        executeBlind: "skipASharpStick", // TODO: make it so we automatically skip if applicable.
+        playerID: playerID,
+    }),
 }
 
 export const functionsTable = {
-    "wheel": (G, playerID) => drawMultiple(G, playerID, 1, 2),
-    "writing": (G, playerID) => drawMultiple(G, playerID, 2, 1),
-    "shareDraw": (G, playerID) => drawNormal(G, playerID),
-    "scoreOneFromHand": (G, playerID, cardID) => {
+    "wheel": (G, playerID, originatingPlayerID) => drawMultiple(G, playerID, 1, 2),
+    "writing": (G, playerID, originatingPlayerID) => drawMultiple(G, playerID, 2, 1),
+    "shareDraw": (G, playerID, originatingPlayerID) => drawNormal(G, playerID),
+    "scoreOneFromHand": (G, playerID, originatingPlayerID, cardID) => {
         let index = G[playerID].hand.findIndex(element => (element.id === cardID));
         if (index === -1) {
             return INVALID_MOVE;
@@ -158,7 +198,7 @@ export const functionsTable = {
         G[playerID].hand.splice(index, 1);
         G.log.push("Player " + playerID + " scores " + name + " from hand");
     },
-    "returnOneFromHand": (G, playerID, cardID) => {
+    "returnOneFromHand": (G, playerID, originatingPlayerID, cardID) => {
         let index = G[playerID].hand.findIndex(element => (element.id === cardID));
         if (index === -1) {
             return INVALID_MOVE;
@@ -174,7 +214,7 @@ export const functionsTable = {
         }
         G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
     },
-    "mayDrawATen": (G, playerID, msg) => {
+    "mayDrawATen": (G, playerID, originatingPlayerID, msg) => {
         if (msg === "no") {
             G.log.push("Player " + playerID + " declines to draw a 10");
             return;
@@ -185,7 +225,7 @@ export const functionsTable = {
         }
         return INVALID_MOVE;
     },
-    "mayDrawAThree": (G, playerID, msg) => {
+    "mayDrawAThree": (G, playerID, originatingPlayerID, msg) => {
         if (msg === "no") {
             G.log.push("Player " + playerID + " declines to draw a 3");
             return;
@@ -196,16 +236,27 @@ export const functionsTable = {
         }
         return INVALID_MOVE;
     },
-    "splayPurpleLeft": (G, playerID) => {
+    "splayPurpleLeft": (G, playerID, originatingPlayerID) => {
         if (G[playerID].board['purple'].length > 1) {
             G[playerID].board.splay['purple'] = 'left';
         }
     },
-    "decline": (G, playerID, msg) => {
+    "decline": (G, playerID, originatingPlayerID, msg) => {
         if (msg === "no") {
             G.log.push("Player " + playerID + " declines");
             return;
         }
         return INVALID_MOVE;
+    },
+    // I DEMAND you transfer a card from your score pile to my score pile.
+    "aSharpStick": (G, playerID, originatingPlayerID, cardID) => {
+        let index = G[playerID].score.findIndex(element => (element.id === cardID));
+        if (index === -1) {
+            return INVALID_MOVE;
+        }
+        let name = G[playerID].score[index].name;
+        G[originatingPlayerID].score.push(G[playerID].score[index]);
+        G[playerID].score.splice(index, 1);
+        G.log.push("Player " + playerID + " transfers " + name + " from their score pile to " + originatingPlayerID + "'s score pile.");
     },
 };

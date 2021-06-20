@@ -101,7 +101,7 @@ function ClickCard(G, ctx, id) {
     if (!stackable.hasOwnProperty('executeWithCard')) {
         return INVALID_MOVE;
     }
-    let x = functionsTable[stackable.executeWithCard](G, stackable.playerID, id);
+    let x = functionsTable[stackable.executeWithCard](G, stackable.playerID, stackable.originatingPlayerID, id);
     TryUnwindStack(G, ctx);
     return x;
 }
@@ -111,7 +111,7 @@ function ClickMenu(G, ctx, msg) {
     if (!stackable.hasOwnProperty('executeWithMenu')) {
         return INVALID_MOVE;
     }
-    let x = functionsTable[stackable.executeWithMenu](G, stackable.playerID, msg);
+    let x = functionsTable[stackable.executeWithMenu](G, stackable.playerID, stackable.originatingPlayerID, msg);
     TryUnwindStack(G, ctx);
     return x;
 }
@@ -119,7 +119,7 @@ function ClickMenu(G, ctx, msg) {
 function TryUnwindStack(G, ctx) {
     while (G.stack.length !== 0 && G.stack[G.stack.length - 1].playerToMove === '') {
         let stackable = G.stack.pop();
-        functionsTable[stackable.executeBlind](G, stackable.playerID);
+        functionsTable[stackable.executeBlind](G, stackable.playerID, stackable.originatingPlayerID);
     }
 }
 
@@ -169,19 +169,19 @@ function DrawAction(G, ctx) {
     recordMainPhaseAction(G, ctx);
 }
 
-function drawNormal(G, playerID) {
+export function drawNormal(G, playerID) {
     let ageToDraw = topAge(G, playerID);
     drawAux(G, playerID, ageToDraw);
 }
 
-function drawMultiple(G, playerID, age, num) {
+export function drawMultiple(G, playerID, age, num) {
     for (let i = 0; i < num; i++) {
         drawAux(G, playerID, age);
     }
 }
 
 // TODO: want to use typescript... ageToDraw is an int.
-function drawAuxAndReturn(G, playerID, ageToDraw) {
+export function drawAuxAndReturn(G, playerID, ageToDraw) {
     if (ageToDraw <= 0) {
         return drawAuxAndReturn(G, playerID, 1);
     } else if (ageToDraw > 10) {
@@ -309,6 +309,7 @@ function DogmaAction(G, ctx, id) {
     G.log.push("Player " + ctx.playerID + " activates " + card.name);
 
     let playersToShare = [];
+    let playersToDemand = [];
     let activePlayerSymbols = symbolCounts(G[ctx.playerID].board);
     // Note: this is the wrong iteration order for multiplayer.
     // If we implement 3+ players, start from player x+1` and wrap around.
@@ -319,22 +320,28 @@ function DogmaAction(G, ctx, id) {
         let playerSymbols = symbolCounts(G[player].board);
         if (playerSymbols[card.mainSymbol] >= activePlayerSymbols[card.mainSymbol]) {
             playersToShare.push(player);
+        } else {
+            playersToDemand.push(player);
         }
     });
 
-    // TODO: for now we assume a share-draw is present if we shared.
-    // Later, figure out how to wire through the bool of whether anything changed.
+
     let dogmasToPush = card.dogmasFunction.slice();
     dogmasToPush.reverse();
-    if (playersToShare.length > 0) {
+    let existsNonDemand = dogmasToPush.find(dogmaName => !stackablesTable[dogmaName](G, ctx.playerID, ctx.playerID).isDemand) !== undefined
+    // TODO: for now we assume a share-draw is present if we shared.
+    // Later, figure out how to wire through the bool of whether anything changed.
+    if (playersToShare.length > 0 && existsNonDemand) {
         G.stack.push(stackablesTable["shareDraw"](G, ctx.playerID));
-        dogmasToPush.forEach(dogmaName => {
-            G.stack.push(stackablesTable[dogmaName](G, ctx.playerID));
-            playersToShare.forEach(playerID => G.stack.push(stackablesTable[dogmaName](G, playerID)))
-        });
-    } else {
-        dogmasToPush.forEach(dogmaName => G.stack.push(stackablesTable[dogmaName](G, ctx.playerID)));
     }
+    dogmasToPush.forEach(dogmaName => {
+        if (stackablesTable[dogmaName](G, ctx.playerID, ctx.playerID).isDemand) {
+            playersToDemand.forEach(playerID => G.stack.push(stackablesTable[dogmaName](G, playerID, ctx.playerID)))
+        } else {
+            G.stack.push(stackablesTable[dogmaName](G, ctx.playerID, ctx.playerID));
+            playersToShare.forEach(playerID => G.stack.push(stackablesTable[dogmaName](G, playerID, ctx.playerID)))
+        }
+    });
 
     TryUnwindStack(G, ctx);
     recordMainPhaseAction(G, ctx);
