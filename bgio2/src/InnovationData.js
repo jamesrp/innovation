@@ -67,6 +67,11 @@ export const cards = [
     },
 ]
 
+// TODO: can we merge all of these into one main dataset,
+// and then just pass things around in G by name (e.g. G.hand = ["wheel", "archery"].
+// Then, when client or server needs the data, just lookup.
+// There are implications for bugfixes during running games but I think I actually
+// like the outcome - basically everyone gets force-updated midgame.
 export function generateDecks(ctx) {
     let decks = {};
     for (let i = 1; i < 11; i++) {
