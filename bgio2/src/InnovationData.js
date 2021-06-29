@@ -1,6 +1,72 @@
 import {INVALID_MOVE} from "boardgame.io/core";
 import {drawMultiple, drawNormal, drawAuxAndReturn} from './InnovationGame';
 
+export const cards = [
+    {
+        color: "green",
+        age: 1,
+        name: "The Wheel",
+        dogmasEnglish: ["Draw two 1s.", "TEST"],
+        dogmasFunction: ["wheel"],
+        mainSymbol: "castle",
+        symbols: ["hex", "", "", "castle", "castle", "castle"],
+    },
+    {
+        color: "blue",
+        age: 1,
+        name: "Writing",
+        dogmasEnglish: ["Draw a 2.", "TEST"],
+        dogmasFunction: ["writing"],
+        mainSymbol: "bulb",
+        symbols: ["hex", "", "", "bulb", "bulb", "crown"],
+    },
+    {
+        color: "purple",
+        age: 1,
+        name: "AP Philosophy",
+        dogmasEnglish: ["Score a card from your hand."],
+        dogmasFunction: ["scoreOneFromHand"],
+        mainSymbol: "bulb",
+        symbols: ["hex", "", "", "bulb", "bulb", "bulb"],
+    },
+    {
+        color: "yellow",
+        age: 1,
+        name: "MegaWriting",
+        dogmasEnglish: ["You may draw a 3.", "You may draw a 10."],
+        dogmasFunction: ["mayDrawAThree", "mayDrawATen"],
+        mainSymbol: "leaf",
+        symbols: ["leaf", "", "", "hex", "leaf", "bulb"],
+    },
+    {
+        color: "red",
+        age: 1,
+        name: "Walls",
+        dogmasEnglish: ["Splay your purple cards left."],
+        dogmasFunction: ["splayPurpleLeft"],
+        mainSymbol: "clock",
+        symbols: ["leaf", "", "", "hex", "clock", "clock"],
+    },
+    {
+        color: "yellow",
+        age: 1,
+        name: "Agriculture",
+        dogmasEnglish: ["You may return a card from your hand. If you do, score a card of value x+1."],
+        dogmasFunction: ["returnOneFromHand"],
+        mainSymbol: "leaf",
+        symbols: ["leaf", "", "", "hex", "leaf", "leaf"],
+    },
+    {
+        color: "red",
+        age: 1,
+        name: "A Sharp Stick",
+        dogmasEnglish: ["I DEMAND you transfer a card from your score pile to my score pile."],
+        dogmasFunction: ["aSharpStick"],
+        mainSymbol: "factory",
+        symbols: ["factory", "", "", "factory", "factory", "hex"],
+    },
+]
+
 export function generateDecks(ctx) {
     let decks = {};
     for (let i = 1; i < 11; i++) {
@@ -55,7 +121,7 @@ function loadCards(ctx) {
                 color: "yellow",
                 age: age,
                 name: "MegaWriting",
-                dogmasEnglish: ["You may draw a 3.","You may draw a 10."],
+                dogmasEnglish: ["You may draw a 3.", "You may draw a 10."],
                 dogmasFunction: ["mayDrawAThree", "mayDrawATen"],
                 mainSymbol: "leaf",
                 symbols: ["leaf", "", "", "hex", "leaf", "bulb"],
