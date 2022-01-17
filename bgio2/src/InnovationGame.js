@@ -1,7 +1,127 @@
 import {INVALID_MOVE} from 'boardgame.io/core';
-import {generateDecks, stackablesTable, functionsTable} from './InnovationData';
+import {generateDecks, stackablesTable, functionsTable, cards} from './InnovationData';
 
 require('core-js/stable')
+
+// Data model:
+// Cards have all data of the card itself including the function definitions
+// for how to execute the dogmas. Cards are classes and cannot be serialized.
+// At runtime, we give each card a random ID for bookkeeping, and this is how
+// the moves work - a player may "click card 0x9786812", and the game state
+// knows how to handle that.
+//
+// When we put something on the stack, we need to be able to serialize it,
+// so no classes or closures - just JSON data. For this we use a Stackable,
+// which contains enough information to perform the action when it's time.
+// A simple example is a Stackable stating that the dogma is The Wheel's
+// dogma, it is activated by Agnes, and it is targeting Barbara (i.e.,
+// Barbara will draw the two cards):
+//   Draw two 1s (Barbara)
+//   Draw two 1s (Agnes)
+//   ShareDraw (Agnes)
+// A more complicated example is when Agnes activates Oars, the demand hits
+// Barbara, and Charles shares the non-demand:
+//   I DEMAND you ... (Barbara)
+//   If no cards were transferred, draw a 1. (Charles)
+//   If no cards were transferred, draw a 1. (Agnes)
+//   ShareDraw (Agnes)
+//
+// To communicate between stackables, we use a notion of named "registers"
+// (or just "variables") stored in the game state - ShareDraw uses a special
+// register "didShare" that the game code knows to set if a non-demand was
+// shared and anything happened. Oars uses a register "oars" that only the
+// two dogmas of Oars use. We also use registers for tracking the special
+// achievements, e.g. "when you tuck six or score six cards in a single turn".
+// This register is maintained by the game framework and has a special
+// duration - most registers are reset when the stack clears, but this one
+// is reset when the turn ends.
+//
+// We can't use a class for Stackable, but here is what it would be:
+//     class Stackable {
+//         constructor(name, dogmaIndex, movingPlayerID, originatingPlayerID) {
+//             this.name = name;
+//             this.dogmaIndex = dogmaIndex;
+//             this.movingPlayerID = movingPlayerID;
+//             this.originatingPlayerID = originatingPlayerID;
+//         }
+//     }
+
+class Function {
+    constructor(blindFn, menuFn, menuOptions, cardsFn, cardOptions) {
+        this.blindFn = blindFn;
+        this.menuFn = menuFn;
+        this.menuOptions = menuOptions;
+        this.cardsFn = cardsFn;
+        this.cardOptions = cardOptions;
+    }
+}
+
+class Dogma {
+    constructor(text, fn, isDemand) {
+        this.text = text;
+        // Contract is to return whether anything happened (for sharing).
+        this.fn = fn;
+        this.isDemand = isDemand;
+    }
+}
+
+class Card {
+    constructor(name, color, age, mainSymbol, symbols, dogmas) {
+        this.name = name;
+        this.color = color;
+        this.age = age;
+        this.mainSymbol = mainSymbol;
+        this.symbols = symbols;
+        this.dogmas = dogmas;
+    }
+}
+
+export const cardsNew = {
+    "The Wheel": new Card(
+        "The Wheel",
+        "green",
+        1,
+        "castle",
+        ["hex", "", "", "castle", "castle", "castle"],
+        [new Dogma(
+            "Draw two 1s.",
+            new Function(
+                (G, playerID, originatingPlayerID) => {
+                    drawMultiple(G, playerID, 1, 2);
+                    return true;
+                },
+                null,
+                null,
+                null,
+                null),
+            false)]
+    ),
+    "Sailing": new Card(
+        "Sailing",
+        "green",
+        1,
+        "crown",
+        ["crown", "", "", "crown", "hex", "leaf"],
+        [new Dogma(
+            "Draw and meld a 1.",
+            new Function(
+                (G, playerID, originatingPlayerID) => {
+                    let drawnCard = drawAuxAndReturn(G, playerID, 1, 1);
+                    if (drawnCard != null) {
+                        return false;
+                    }
+                    meldCard(G, playerID, drawnCard);
+                    return true;
+                },
+                null,
+                null,
+                null,
+                null),
+            false)]
+    ),
+    // TODO(Clothing): how can we make "meld a card of different color
+    // from a card on your board" into a blindFn if applicable at runtime?
+}
 
 export const Innovation = {
     name: 'innovation',
@@ -203,6 +323,14 @@ function drawAux(G, playerID, ageToDraw) {
     }
 }
 
+function drawAndMeld(G, playerID, ageToDraw) {
+    let drawnCard = drawAuxAndReturn(G, playerID, ageToDraw, 1);
+    if (drawnCard != null) {
+        return;
+    }
+    meldCard(G, playerID, card);
+}
+
 // TODO: symbolCounts does not consider splay, it only takes the top card.
 export function symbolCounts(board) {
     let counts = {};
@@ -266,7 +394,8 @@ function MeldAction(G, ctx, id) {
     if (index === -1) {
         return INVALID_MOVE;
     }
-    let name = G[ctx.playerID].hand[index].name;
+    let cardName = G[ctx.playerID].hand[index].name;
+    meldCard(G, ctx.playerID, cardName);
     let color = G[ctx.playerID].hand[index].color;
     G[ctx.playerID].board[color].push(G[ctx.playerID].hand[index]);
     G[ctx.playerID].hand.splice(index, 1);
@@ -276,6 +405,11 @@ function MeldAction(G, ctx, id) {
     } else {
         recordMainPhaseAction(G, ctx);
     }
+}
+
+function meldCard(G, playerID, cardName) {
+    let color = cards[cardName].color;
+    G[playerID].board[color].push(cardName);
 }
 
 function AchieveAction(G, ctx, id) {

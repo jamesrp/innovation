@@ -1,13 +1,120 @@
 import {INVALID_MOVE} from "boardgame.io/core";
 import {drawMultiple, drawNormal, drawAuxAndReturn} from './InnovationGame';
 
+// Data model:
+// Cards have all data of the card itself including the function definitions
+// for how to execute the dogmas. Cards are classes and cannot be serialized.
+// At runtime, we give each card a random ID for bookkeeping, and this is how
+// the moves work - a player may "click card 0x9786812", and the game state
+// knows how to handle that.
+//
+// When we put something on the stack, we need to be able to serialize it,
+// so no classes or closures - just JSON data. For this we use a Stackable,
+// which contains enough information to perform the action when it's time.
+// A simple example is a Stackable stating that the dogma is The Wheel's
+// dogma, it is activated by Agnes, and it is targeting Barbara (i.e.,
+// Barbara will draw the two cards):
+//   Draw two 1s (Barbara)
+//   Draw two 1s (Agnes)
+//   ShareDraw (Agnes)
+// A more complicated example is when Agnes activates Oars, the demand hits
+// Barbara, and Charles shares the non-demand:
+//   I DEMAND you ... (Barbara)
+//   If no cards were transferred, draw a 1. (Charles)
+//   If no cards were transferred, draw a 1. (Agnes)
+//   ShareDraw (Agnes)
+//
+// To communicate between stackables, we use a notion of named "registers"
+// (or just "variables") stored in the game state - ShareDraw uses a special
+// register "didShare" that the game code knows to set if a non-demand was
+// shared and anything happened. Oars uses a register "oars" that only the
+// two dogmas of Oars use. We also use registers for tracking the special
+// achievements, e.g. "when you tuck six or score six cards in a single turn".
+// This register is maintained by the game framework and has a special
+// duration - most registers are reset when the stack clears, but this one
+// is reset when the turn ends.
+//
+// We can't use a class for Stackable, but here is what it would be:
+//     class Stackable {
+//         constructor(name, dogmaIndex, movingPlayerID, originatingPlayerID) {
+//             this.name = name;
+//             this.dogmaIndex = dogmaIndex;
+//             this.movingPlayerID = movingPlayerID;
+//             this.originatingPlayerID = originatingPlayerID;
+//         }
+//     }
+
+class Dogma {
+    constructor(text, fn, isDemand) {
+        this.text = text;
+        // Contract is to return whether anything happened (for sharing).
+        this.fn = fn;
+        this.isDemand = isDemand;
+    }
+}
+
+class Card {
+    constructor(name, color, age, mainSymbol, symbols, dogmas) {
+        this.name = name;
+        this.color = color;
+        this.age = age;
+        this.mainSymbol = mainSymbol;
+        this.symbols = symbols;
+        this.dogmas = dogmas;
+    }
+
+    // Getter
+    get area() {
+        return this.calcArea();
+    }
+
+    // Method
+    calcArea() {
+        return this.height * this.width;
+    }
+}
+
+export const cardsNew = {
+    "The Wheel": new Card(
+        "The Wheel",
+        "green",
+        1,
+        "castle",
+        ["hex", "", "", "castle", "castle", "castle"],
+        [new Dogma(
+            "Draw two 1s.",
+            (G, playerID, originatingPlayerID) => {
+                drawMultiple(G, playerID, 1, 2);
+                return true;
+            },
+            false)]
+    ),
+    "Sailing": new Card(
+        "Sailing",
+        "green",
+        1,
+        "crown",
+        ["crown", "", "", "crown", "hex", "leaf"],
+        [new Dogma(
+            "Draw and meld a 1.",
+            (G, playerID, originatingPlayerID) => {
+                let drawnCard = drawAuxAndReturn(G, playerID, 1, 1);
+                if (drawnCard != null) {
+                    return false;
+                }
+            },
+            false)]
+    ),
+}
+
+
 export const cards = [
     {
         color: "green",
         age: 1,
         name: "The Wheel",
-        dogmasEnglish: ["Draw two 1s.", "TEST"],
-        dogmasFunction: ["wheel"],
+        dogmasEnglish: ["Draw two 1s."],
+        dogmasFunction: [(G, playerID, originatingPlayerID) => drawMultiple(G, playerID, 1, 2)],
         mainSymbol: "castle",
         symbols: ["hex", "", "", "castle", "castle", "castle"],
     },
@@ -15,8 +122,8 @@ export const cards = [
         color: "blue",
         age: 1,
         name: "Writing",
-        dogmasEnglish: ["Draw a 2.", "TEST"],
-        dogmasFunction: ["writing"],
+        dogmasEnglish: ["Draw a 2."],
+        dogmasFunction: [(G, playerID, originatingPlayerID) => drawMultiple(G, playerID, 2, 1)],
         mainSymbol: "bulb",
         symbols: ["hex", "", "", "bulb", "bulb", "crown"],
     },
@@ -25,7 +132,16 @@ export const cards = [
         age: 1,
         name: "AP Philosophy",
         dogmasEnglish: ["Score a card from your hand."],
-        dogmasFunction: ["scoreOneFromHand"],
+        dogmasFunction: [(G, playerID, originatingPlayerID, cardID) => {
+            let index = G[playerID].hand.findIndex(element => (element.id === cardID));
+            if (index === -1) {
+                return INVALID_MOVE;
+            }
+            let name = G[playerID].hand[index].name;
+            G[playerID].score.push(G[playerID].hand[index]);
+            G[playerID].hand.splice(index, 1);
+            G.log.push("Player " + playerID + " scores " + name + " from hand");
+        }],
         mainSymbol: "bulb",
         symbols: ["hex", "", "", "bulb", "bulb", "bulb"],
     },
@@ -34,7 +150,27 @@ export const cards = [
         age: 1,
         name: "MegaWriting",
         dogmasEnglish: ["You may draw a 3.", "You may draw a 10."],
-        dogmasFunction: ["mayDrawAThree", "mayDrawATen"],
+        dogmasFunction: [(G, playerID, originatingPlayerID, msg) => {
+            if (msg === "no") {
+                G.log.push("Player " + playerID + " declines to draw a 3");
+                return;
+            }
+            if (msg === "yes") {
+                drawMultiple(G, playerID, 3, 1)
+                return;
+            }
+            return INVALID_MOVE;
+        }, (G, playerID, originatingPlayerID, msg) => {
+            if (msg === "no") {
+                G.log.push("Player " + playerID + " declines to draw a 10");
+                return;
+            }
+            if (msg === "yes") {
+                drawMultiple(G, playerID, 10, 1)
+                return;
+            }
+            return INVALID_MOVE;
+        }],
         mainSymbol: "leaf",
         symbols: ["leaf", "", "", "hex", "leaf", "bulb"],
     },
@@ -43,7 +179,11 @@ export const cards = [
         age: 1,
         name: "Walls",
         dogmasEnglish: ["Splay your purple cards left."],
-        dogmasFunction: ["splayPurpleLeft"],
+        dogmasFunction: [(G, playerID, originatingPlayerID) => {
+            if (G[playerID].board['purple'].length > 1) {
+                G[playerID].board.splay['purple'] = 'left';
+            }
+        }],
         mainSymbol: "clock",
         symbols: ["leaf", "", "", "hex", "clock", "clock"],
     },
@@ -52,7 +192,22 @@ export const cards = [
         age: 1,
         name: "Agriculture",
         dogmasEnglish: ["You may return a card from your hand. If you do, score a card of value x+1."],
-        dogmasFunction: ["returnOneFromHand"],
+        dogmasFunction: [(G, playerID, originatingPlayerID, cardID) => {
+            let index = G[playerID].hand.findIndex(element => (element.id === cardID));
+            if (index === -1) {
+                return INVALID_MOVE;
+            }
+            let name = G[playerID].hand[index].name;
+            let age = G[playerID].hand[index].age;
+            G.decks[age].push(G[playerID].hand[index]); // TODO push to bottom?
+            G[playerID].hand.splice(index, 1);
+            let scoredCard = drawAuxAndReturn(G, playerID, age + 1);
+            if (scoredCard !== null) {
+                G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
+                G[playerID].score.push(scoredCard);
+            }
+            G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
+        }],
         mainSymbol: "leaf",
         symbols: ["leaf", "", "", "hex", "leaf", "leaf"],
     },
@@ -61,7 +216,16 @@ export const cards = [
         age: 1,
         name: "A Sharp Stick",
         dogmasEnglish: ["I DEMAND you transfer a card from your score pile to my score pile."],
-        dogmasFunction: ["aSharpStick"],
+        dogmasFunction: [(G, playerID, originatingPlayerID, cardID) => {
+            let index = G[playerID].score.findIndex(element => (element.id === cardID));
+            if (index === -1) {
+                return INVALID_MOVE;
+            }
+            let name = G[playerID].score[index].name;
+            G[originatingPlayerID].score.push(G[playerID].score[index]);
+            G[playerID].score.splice(index, 1);
+            G.log.push("Player " + playerID + " transfers " + name + " from their score pile to " + originatingPlayerID + "'s score pile.");
+        }],
         mainSymbol: "factory",
         symbols: ["factory", "", "", "factory", "factory", "hex"],
     },
@@ -88,82 +252,22 @@ export function generateDecks(ctx) {
 
 function loadCards(ctx) {
     let multiplicity = 3;
-    let cards = Array(0);
+    let output = Array(0);
     for (let i = 0; i < multiplicity; i++) {
         for (let age = 1; age < 11; age++) {
-            cards.push({
+            cards.forEach(card => output.push({
                 id: ctx.random.Number().toString(),
                 color: "green",
                 age: age,
-                name: "The Wheel",
-                dogmasEnglish: ["Draw two 1s.", "TEST"],
-                dogmasFunction: ["wheel"],
-                mainSymbol: "castle",
-                symbols: ["hex", "", "", "castle", "castle", "castle"],
-            });
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "blue",
-                age: age,
-                name: "Writing",
-                dogmasEnglish: ["Draw a 2.", "TEST"],
-                dogmasFunction: ["writing"],
-                mainSymbol: "bulb",
-                symbols: ["hex", "", "", "bulb", "bulb", "crown"],
-            });
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "purple",
-                age: age,
-                name: "AP Philosophy",
-                dogmasEnglish: ["Score a card from your hand."],
-                dogmasFunction: ["scoreOneFromHand"],
-                mainSymbol: "bulb",
-                symbols: ["hex", "", "", "bulb", "bulb", "bulb"],
-            });
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "yellow",
-                age: age,
-                name: "MegaWriting",
-                dogmasEnglish: ["You may draw a 3.", "You may draw a 10."],
-                dogmasFunction: ["mayDrawAThree", "mayDrawATen"],
-                mainSymbol: "leaf",
-                symbols: ["leaf", "", "", "hex", "leaf", "bulb"],
-            });
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "red",
-                age: age,
-                name: "Walls",
-                dogmasEnglish: ["Splay your purple cards left."],
-                dogmasFunction: ["splayPurpleLeft"],
-                mainSymbol: "clock",
-                symbols: ["leaf", "", "", "hex", "clock", "clock"],
-            });
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "yellow",
-                age: age,
-                name: "Agriculture",
-                dogmasEnglish: ["You may return a card from your hand. If you do, score a card of value x+1."],
-                dogmasFunction: ["returnOneFromHand"],
-                mainSymbol: "leaf",
-                symbols: ["leaf", "", "", "hex", "leaf", "leaf"],
-            });
-            cards.push({
-                id: ctx.random.Number().toString(),
-                color: "red",
-                age: age,
-                name: "A Sharp Stick",
-                dogmasEnglish: ["I DEMAND you transfer a card from your score pile to my score pile."],
-                dogmasFunction: ["aSharpStick"],
-                mainSymbol: "factory",
-                symbols: ["factory", "", "", "factory", "factory", "hex"],
-            });
+                name: card.name,
+                dogmasEnglish: card.dogmasEnglish,
+                dogmasFunction: card.dogmasFunction,
+                mainSymbol: card.mainSymbol,
+                symbols: card.symbols,
+            }));
         }
     }
-    return cards;
+    return output;
 }
 
 // We can't put these in the card objects as lambdas because BGIO can't serialize closures.
@@ -255,79 +359,14 @@ export const stackablesTable = {
     }),
 }
 
+// TODO: remove these last two.
 export const functionsTable = {
-    "wheel": (G, playerID, originatingPlayerID) => drawMultiple(G, playerID, 1, 2),
-    "writing": (G, playerID, originatingPlayerID) => drawMultiple(G, playerID, 2, 1),
     "shareDraw": (G, playerID, originatingPlayerID) => drawNormal(G, playerID),
-    "scoreOneFromHand": (G, playerID, originatingPlayerID, cardID) => {
-        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
-        if (index === -1) {
-            return INVALID_MOVE;
-        }
-        let name = G[playerID].hand[index].name;
-        G[playerID].score.push(G[playerID].hand[index]);
-        G[playerID].hand.splice(index, 1);
-        G.log.push("Player " + playerID + " scores " + name + " from hand");
-    },
-    "returnOneFromHand": (G, playerID, originatingPlayerID, cardID) => {
-        let index = G[playerID].hand.findIndex(element => (element.id === cardID));
-        if (index === -1) {
-            return INVALID_MOVE;
-        }
-        let name = G[playerID].hand[index].name;
-        let age = G[playerID].hand[index].age;
-        G.decks[age].push(G[playerID].hand[index]); // TODO push to bottom?
-        G[playerID].hand.splice(index, 1);
-        let scoredCard = drawAuxAndReturn(G, playerID, age + 1);
-        if (scoredCard !== null) {
-            G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
-            G[playerID].score.push(scoredCard);
-        }
-        G.log.push("Player " + playerID + " returns " + name + " from hand and scores a X+1");
-    },
-    "mayDrawATen": (G, playerID, originatingPlayerID, msg) => {
-        if (msg === "no") {
-            G.log.push("Player " + playerID + " declines to draw a 10");
-            return;
-        }
-        if (msg === "yes") {
-            drawMultiple(G, playerID, 10, 1)
-            return;
-        }
-        return INVALID_MOVE;
-    },
-    "mayDrawAThree": (G, playerID, originatingPlayerID, msg) => {
-        if (msg === "no") {
-            G.log.push("Player " + playerID + " declines to draw a 3");
-            return;
-        }
-        if (msg === "yes") {
-            drawMultiple(G, playerID, 3, 1)
-            return;
-        }
-        return INVALID_MOVE;
-    },
-    "splayPurpleLeft": (G, playerID, originatingPlayerID) => {
-        if (G[playerID].board['purple'].length > 1) {
-            G[playerID].board.splay['purple'] = 'left';
-        }
-    },
     "decline": (G, playerID, originatingPlayerID, msg) => {
         if (msg === "no") {
             G.log.push("Player " + playerID + " declines");
             return;
         }
         return INVALID_MOVE;
-    },
-    // I DEMAND you transfer a card from your score pile to my score pile.
-    "aSharpStick": (G, playerID, originatingPlayerID, cardID) => {
-        let index = G[playerID].score.findIndex(element => (element.id === cardID));
-        if (index === -1) {
-            return INVALID_MOVE;
-        }
-        let name = G[playerID].score[index].name;
-        G[originatingPlayerID].score.push(G[playerID].score[index]);
-        G[playerID].score.splice(index, 1);
-        G.log.push("Player " + playerID + " transfers " + name + " from their score pile to " + originatingPlayerID + "'s score pile.");
     },
 };
