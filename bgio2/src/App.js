@@ -1,5 +1,5 @@
 import {Client, Lobby} from 'boardgame.io/react';
-import {SocketIO} from 'boardgame.io/multiplayer'
+import {SocketIO, Local } from 'boardgame.io/multiplayer'
 import {LostCities} from './LostCitiesGame';
 import {LostCitiesBoard} from './LostCitiesBoard';
 import {Elements} from './ElementsGame';
@@ -8,6 +8,16 @@ import {Innovation} from './InnovationGame';
 import {InnovationBoard} from './InnovationBoard';
 import {GloryToRome} from './GloryToRomeGame';
 import {GloryToRomeBoard} from './GloryToRomeBoard';
+import {Protocol} from './ProtocolGame';
+import {ProtocolBoard} from './ProtocolBoard';
+
+const ProtocolClient = Client({
+    game: Protocol,
+    board: ProtocolBoard,
+    multiplayer: Local (),
+    numPlayers: 2,
+    debug: true,
+});
 
 const ElementsClient = Client({
     game: Elements,
@@ -53,6 +63,7 @@ function MakeLobby() {
         lobbyServer={`http://${window.location.hostname}:8080`}
         gameComponents={[
             {game: Elements, board: ElementsBoard},
+            {game: Protocol, board: ProtocolBoard},
             {game: LostCities, board: LostCitiesBoard},
             {game: Innovation, board: InnovationBoard},
             {game: GloryToRome, board: GloryToRomeBoard}
@@ -79,6 +90,8 @@ function MakeClient(game, match, player, numPlayers) {
         myClient = <GloryToRomeClient playerID={player} matchID={match}/>;
     }  else if (game === "elements") {
         myClient = <ElementsClient playerID={player} matchID={match}/>;
+    }  else if (game === "protocol") {
+        myClient = <ProtocolClient playerID={player} matchID={match}/>;
     }
     return myClient;
 }
@@ -103,6 +116,8 @@ function RouteRequest() {
             game = "glorytorome";
         }  else if (game === "e") {
             game = "elements";
+        }  else if (game === "p") {
+            game = "protocol";
         }
         let match = game + "/" + pathArray[3];
         let numPlayers = parseInt(pathArray[4], 10)
